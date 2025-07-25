@@ -52,65 +52,66 @@ class EntryTestController extends Controller
     }
 
     public function start($id)
-    {
-        $entryTest = EntryTest::findOrFail($id);
-        $studentId = session('registered_student_id');
-        
-        if (!$studentId) {
-            return redirect()->route('entry-test.register')
-                ->with('error', 'Please complete registration first.');
-        }
-
-        $student = Student::findOrFail($studentId);
-        
-        // Check if student already has an active attempt
-        $existingAttempt = EntryTestAttempt::where('student_id', $student->id)
-            ->where('entry_test_id', $id)
-            ->where('status', 'in_progress')
-            ->first();
-
-        if ($existingAttempt) {
-            return redirect()->route('entry-test.take', [$entryTest->id, $existingAttempt->id]);
-        }
-
-        // Check if student has completed attempt
-        $completedAttempt = EntryTestAttempt::where('student_id', $student->id)
-            ->where('entry_test_id', $id)
-            ->where('status', 'completed')
-            ->first();
-
-        if ($completedAttempt && !$student->is_retake_allowed) {
-            return redirect()->route('entry-test.result', $completedAttempt->id);
-        }
-
-        // Create new attempt
-        $attempt = EntryTestAttempt::create([
-            'student_id' => $student->id,
-            'entry_test_id' => $id,
-            'started_at' => now(),
-            'expires_at' => now()->addMinutes($entryTest->duration_minutes),
-            'status' => 'in_progress'
-        ]);
-
-        return redirect()->route('entry-test.take', [$entryTest->id, $attempt->id]);
+{
+    $entryTest = EntryTest::findOrFail($id);
+    $studentId = session('registered_student_id');
+    
+    if (!$studentId) {
+        return redirect()->route('entry-test.register')
+            ->with('error', 'Please complete registration first.');
     }
+
+    $student = Student::findOrFail($studentId);
+    
+    // Check if student already has an active attempt
+    $existingAttempt = EntryTestAttempt::where('student_id', $student->id)
+        ->where('entry_test_id', $id)
+        ->where('status', 'in_progress')
+        ->first();
+
+    if ($existingAttempt) {
+        return redirect()->route('entry-test.take', [$entryTest->id, $existingAttempt->id]);
+    }
+
+    // Check if student has completed attempt
+    $completedAttempt = EntryTestAttempt::where('student_id', $student->id)
+        ->where('entry_test_id', $id)
+        ->where('status', 'completed')
+        ->first();
+
+    if ($completedAttempt && !$student->is_retake_allowed) {
+        return redirect()->route('entry-test.result', $completedAttempt->id);
+    }
+
+    // Create new attempt - FIX: Add user_id as null for guest students
+    $attempt = EntryTestAttempt::create([
+        'user_id' => null,  // FIX: Set to null for guest student attempts
+        'student_id' => $student->id,
+        'entry_test_id' => $id,
+        'started_at' => now(),
+        'expires_at' => now()->addMinutes($entryTest->duration_minutes),
+        'status' => 'in_progress'
+    ]);
+
+    return redirect()->route('entry-test.take', [$entryTest->id, $attempt->id]);
+}
 
     public function take($id, $attemptId)
     {
         $entryTest = EntryTest::with('questions')->findOrFail($id);
         $attempt = EntryTestAttempt::findOrFail($attemptId);
-        
+    
         // Security checks
         $studentId = session('registered_student_id');
         if (!$studentId || $attempt->student_id !== $studentId || $attempt->status !== 'in_progress') {
-            return redirect()->route('entry-test.index')
+            return redirect()->route('entry-test.index')  // FIX: Changed from entry-tests.index
                 ->with('error', 'Invalid test attempt.');
         }
 
         // Check if test has expired
         if ($attempt->isExpired()) {
             $attempt->update(['status' => 'expired']);
-            return redirect()->route('entry-test.index')
+            return redirect()->route('entry-test.index')  // FIX: Changed from entry-tests.index
                 ->with('error', 'Test time has expired.');
         }
 
@@ -194,14 +195,11 @@ class EntryTestController extends Controller
         $violations = $attempt->proctoring_violations ?? [];
         $violations[] = [
             'type' => $request->type,
-            'timestamp' => now(),
-            'details' => $request->details
+            'details' => $request->details,
+            'timestamp' => now()->toISOString()
         ];
 
-        $attempt->update([
-            'proctoring_violations' => $violations,
-            'browser_switches' => $attempt->browser_switches + 1
-        ]);
+        $attempt->update(['proctoring_violations' => $violations]);
 
         return response()->json(['success' => true]);
     }

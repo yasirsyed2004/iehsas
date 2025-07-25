@@ -7,7 +7,6 @@
     <title>Admin Dashboard - LMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .sidebar {
             min-height: 100vh;
@@ -68,6 +67,12 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: 400px; /* Fixed height to prevent infinite scrolling */
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 300px; /* Fixed height for chart */
+            width: 100%;
         }
         .mini-stat {
             background: white;
@@ -79,6 +84,11 @@
         .table-responsive {
             max-height: 400px;
             overflow-y: auto;
+        }
+        /* Prevent canvas from growing indefinitely */
+        #attemptsChart {
+            max-height: 300px !important;
+            max-width: 100% !important;
         }
     </style>
 </head>
@@ -282,7 +292,9 @@
                     <h5 class="mb-3">
                         <i class="fas fa-chart-area me-2"></i>Test Attempts (Last 7 Days)
                     </h5>
-                    <canvas id="attemptsChart" height="100"></canvas>
+                    <div class="chart-wrapper">
+                        <canvas id="attemptsChart"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="col-lg-4 mb-4">
@@ -461,41 +473,101 @@
         </div>
     </div>
 
+    <!-- Load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Chart.js Script -->
     <script>
-        // Attempts Chart
-        const ctx = document.getElementById('attemptsChart').getContext('2d');
-        const chartData = @json($chartData);
-        
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartData.map(item => item.date),
-                datasets: [{
-                    label: 'Attempts',
-                    data: chartData.map(item => item.attempts),
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Wait for DOM to be ready
+                const canvas = document.getElementById('attemptsChart');
+                if (!canvas) {
+                    console.error('Canvas element not found');
+                    return;
+                }
+
+                const ctx = canvas.getContext('2d');
+                const chartData = @json($chartData ?? []);
+                
+                // Destroy existing chart if it exists
+                if (window.attemptsChartInstance) {
+                    window.attemptsChartInstance.destroy();
+                }
+
+                // Create new chart
+                window.attemptsChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.map(item => item.date || ''),
+                        datasets: [{
+                            label: 'Test Attempts',
+                            data: chartData.map(item => item.attempts || 0),
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: '#3498db',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#6c757d'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                                },
+                                ticks: {
+                                    stepSize: 1,
+                                    color: '#6c757d',
+                                    callback: function(value) {
+                                        return Number.isInteger(value) ? value : '';
+                                    }
+                                }
+                            }
+                        },
+                        elements: {
+                            point: {
+                                hoverBackgroundColor: '#3498db'
+                            }
                         }
                     }
+                });
+
+            } catch (error) {
+                console.error('Error creating chart:', error);
+                // Hide chart container if there's an error
+                const chartContainer = document.querySelector('.chart-container');
+                if (chartContainer) {
+                    chartContainer.style.display = 'none';
                 }
             }
         });

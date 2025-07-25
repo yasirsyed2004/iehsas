@@ -87,14 +87,14 @@
     <nav class="sidebar">
         <div class="user-info text-center">
             <div class="mb-2">
-                @if($admin->avatar)
+                @if($admin && $admin->avatar)
                     <img src="{{ asset('storage/' . $admin->avatar) }}" alt="Avatar" class="rounded-circle" width="60" height="60">
                 @else
                     <i class="fas fa-user-circle fa-3x"></i>
                 @endif
             </div>
-            <h6>{{ $admin->name }}</h6>
-            <small>{{ ucfirst(str_replace('_', ' ', $admin->role)) }}</small>
+            <h6>{{ $admin ? $admin->name : 'Admin' }}</h6>
+            <small>{{ $admin ? ucfirst(str_replace('_', ' ', $admin->role)) : 'Administrator' }}</small>
         </div>
         
         <ul class="nav flex-column p-3">
@@ -237,9 +237,9 @@
                         </div>
                         <div class="ms-3">
                             <h3 class="mb-0">{{ $stats['total_attempts'] }}</h3>
-                            <p class="text-muted mb-0">Total Attempts</p>
-                            <small class="text-success">
-                                <i class="fas fa-trophy"></i> {{ $stats['passed_attempts'] }} Passed
+                            <p class="text-muted mb-0">Test Attempts</p>
+                            <small class="text-primary">
+                                <i class="fas fa-percentage"></i> {{ $stats['average_score'] }}% Avg
                             </small>
                         </div>
                     </div>
@@ -247,49 +247,36 @@
             </div>
         </div>
 
-        <!-- Detailed Stats -->
+        <!-- Secondary Stats -->
         <div class="row mb-4">
-            <div class="col-xl-2 col-md-4 mb-3">
+            <div class="col-lg-3 col-6 mb-3">
                 <div class="mini-stat">
-                    <h5 class="mb-1 text-success">{{ $stats['completed_attempts'] }}</h5>
+                    <h4 class="text-success mb-1">{{ $stats['completed_attempts'] }}</h4>
                     <small class="text-muted">Completed</small>
                 </div>
             </div>
-            <div class="col-xl-2 col-md-4 mb-3">
+            <div class="col-lg-3 col-6 mb-3">
                 <div class="mini-stat">
-                    <h5 class="mb-1 text-primary">{{ $stats['passed_attempts'] }}</h5>
+                    <h4 class="text-primary mb-1">{{ $stats['passed_attempts'] }}</h4>
                     <small class="text-muted">Passed</small>
                 </div>
             </div>
-            <div class="col-xl-2 col-md-4 mb-3">
+            <div class="col-lg-3 col-6 mb-3">
                 <div class="mini-stat">
-                    <h5 class="mb-1 text-warning">{{ $stats['in_progress_attempts'] }}</h5>
+                    <h4 class="text-warning mb-1">{{ $stats['in_progress_attempts'] }}</h4>
                     <small class="text-muted">In Progress</small>
                 </div>
             </div>
-            <div class="col-xl-2 col-md-4 mb-3">
+            <div class="col-lg-3 col-6 mb-3">
                 <div class="mini-stat">
-                    <h5 class="mb-1 text-info">{{ $stats['average_score'] }}%</h5>
-                    <small class="text-muted">Avg Score</small>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 mb-3">
-                <div class="mini-stat">
-                    <h5 class="mb-1 text-secondary">{{ $stats['today_attempts'] }}</h5>
-                    <small class="text-muted">Today</small>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 mb-3">
-                <div class="mini-stat">
-                    <h5 class="mb-1 text-dark">{{ $stats['this_week_attempts'] }}</h5>
+                    <h4 class="text-info mb-1">{{ $stats['this_week_attempts'] }}</h4>
                     <small class="text-muted">This Week</small>
                 </div>
             </div>
         </div>
 
-        <!-- Charts and Recent Activity -->
+        <!-- Charts Section -->
         <div class="row mb-4">
-            <!-- Attempts Chart -->
             <div class="col-lg-8 mb-4">
                 <div class="chart-container">
                     <h5 class="mb-3">
@@ -298,34 +285,25 @@
                     <canvas id="attemptsChart" height="100"></canvas>
                 </div>
             </div>
-
-            <!-- Test Performance -->
             <div class="col-lg-4 mb-4">
                 <div class="chart-container">
                     <h5 class="mb-3">
-                        <i class="fas fa-chart-pie me-2"></i>Test Performance
+                        <i class="fas fa-chart-pie me-2"></i>Pass Rate by Test
                     </h5>
                     @if($testStats->count() > 0)
                         @foreach($testStats as $test)
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold small">{{ Str::limit($test->title, 20) }}</span>
-                                <span class="badge bg-info">{{ $test->attempts_count }}</span>
-                            </div>
-                            @if($test->completed_attempts_count > 0)
-                                @php
-                                    $passRate = ($test->passed_attempts_count / $test->completed_attempts_count) * 100;
-                                @endphp
-                                <div class="progress mb-1" style="height: 6px;">
-                                    <div class="progress-bar bg-success" style="width: {{ $passRate }}%"></div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="fw-bold">{{ Str::limit($test->title, 20) }}</small>
+                                    <small class="text-muted">
+                                        {{ $test->completed_attempts > 0 ? round(($test->passed_attempts / $test->completed_attempts) * 100, 1) : 0 }}%
+                                    </small>
                                 </div>
-                                <small class="text-muted">
-                                    {{ $test->passed_attempts_count }}/{{ $test->completed_attempts_count }} ({{ round($passRate, 1) }}%)
-                                </small>
-                            @else
-                                <small class="text-muted">No completed attempts</small>
-                            @endif
-                        </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-success" style="width: {{ $test->completed_attempts > 0 ? ($test->passed_attempts / $test->completed_attempts) * 100 : 0 }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ $test->passed_attempts }}/{{ $test->completed_attempts }} passed</small>
+                            </div>
                         @endforeach
                     @else
                         <div class="text-center py-4">
@@ -348,7 +326,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-0">
-                        @if($recentAttempts->count() > 0)
+                        @if($recentAttempts && $recentAttempts->count() > 0)
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
                                     <thead class="table-light">
@@ -366,14 +344,25 @@
                                         <tr>
                                             <td>
                                                 <div>
-                                                    <strong class="small">{{ $attempt->student->full_name }}</strong><br>
-                                                    <small class="text-muted">{{ $attempt->student->cnic }}</small>
+                                                    @if($attempt->student)
+                                                        <strong class="small">{{ $attempt->student->full_name }}</strong><br>
+                                                        <small class="text-muted">{{ $attempt->student->cnic }}</small>
+                                                    @else
+                                                        <strong class="small text-danger">Student Not Found</strong><br>
+                                                        <small class="text-muted">ID: {{ $attempt->student_id ?? $attempt->user_id }}</small>
+                                                    @endif
                                                 </div>
                                             </td>
-                                            <td class="small">{{ Str::limit($attempt->entryTest->title, 25) }}</td>
+                                            <td class="small">
+                                                @if($attempt->entryTest)
+                                                    {{ Str::limit($attempt->entryTest->title, 25) }}
+                                                @else
+                                                    <span class="text-muted">Test Deleted</span>
+                                                @endif
+                                            </td>
                                             <td>
                                                 @if($attempt->status === 'completed')
-                                                    @if($attempt->hasPassed())
+                                                    @if($attempt->percentage !== null && $attempt->entryTest && $attempt->percentage >= $attempt->entryTest->passing_score)
                                                         <span class="badge bg-success">Passed</span>
                                                     @else
                                                         <span class="badge bg-danger">Failed</span>
@@ -455,12 +444,16 @@
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span>Entry Tests</span>
                             <span class="badge bg-{{ $stats['active_tests'] > 0 ? 'success' : 'warning' }}">
-                                {{ $stats['active_tests'] > 0 ? 'Active' : 'No Active Tests' }}
+                                {{ $stats['active_tests'] > 0 ? 'Active' : 'Inactive' }}
                             </span>
                         </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Students</span>
+                            <span class="badge bg-info">{{ $stats['total_students'] }}</span>
+                        </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span>Last Backup</span>
-                            <span class="badge bg-info">{{ now()->format('M d') }}</span>
+                            <span>Today's Attempts</span>
+                            <span class="badge bg-primary">{{ $stats['today_attempts'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -468,9 +461,9 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js Script -->
     <script>
-        // Chart for attempts over time
+        // Attempts Chart
         const ctx = document.getElementById('attemptsChart').getContext('2d');
         const chartData = @json($chartData);
         
@@ -479,16 +472,18 @@
             data: {
                 labels: chartData.map(item => item.date),
                 datasets: [{
-                    label: 'Test Attempts',
+                    label: 'Attempts',
                     data: chartData.map(item => item.attempts),
                     borderColor: '#3498db',
                     backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                    tension: 0.4,
-                    fill: true
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         display: false
@@ -504,17 +499,8 @@
                 }
             }
         });
-
-        // Auto-dismiss alerts after 5 seconds
-        setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                if (alert.classList.contains('show')) {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                }
-            });
-        }, 5000);
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

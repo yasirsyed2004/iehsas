@@ -133,6 +133,23 @@
                     <i class="fas fa-chart-line me-2"></i> Student Attempts
                 </a>
             </li>
+
+            <!-- Add these lines after Student Attempts -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('admin.courses.index') }}">
+                        <i class="fas fa-graduation-cap me-2"></i> Courses
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('admin.course-categories.index') }}">
+                        <i class="fas fa-tags me-2"></i> Course Categories
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('admin.enrollments.index') }}">
+                        <i class="fas fa-user-graduate me-2"></i> Enrollments
+                    </a>
+                </li>
             <li class="nav-item">
                 <a class="nav-link" href="#" onclick="alert('Coming Soon!')">
                     <i class="fas fa-book me-2"></i> E-Learning

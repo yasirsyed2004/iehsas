@@ -90,6 +90,41 @@
             max-height: 300px !important;
             max-width: 100% !important;
         }
+        .course-stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        .course-stat-card:hover {
+            transform: translateY(-3px);
+        }
+        .course-stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(20px, -20px);
+        }
+        .quick-action-btn {
+            border-radius: 10px;
+            padding: 12px;
+            transition: all 0.3s;
+            border: none;
+            font-weight: 500;
+        }
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
@@ -134,22 +169,23 @@
                 </a>
             </li>
 
-            <!-- Add these lines after Student Attempts -->
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.courses.index') }}">
-                        <i class="fas fa-graduation-cap me-2"></i> Courses
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.course-categories.index') }}">
-                        <i class="fas fa-tags me-2"></i> Course Categories
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.enrollments.index') }}">
-                        <i class="fas fa-user-graduate me-2"></i> Enrollments
-                    </a>
-                </li>
+            <!-- Courses Section -->
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('admin.courses.index') }}">
+                    <i class="fas fa-graduation-cap me-2"></i> Courses
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('admin.course-categories.index') }}">
+                    <i class="fas fa-tags me-2"></i> Course Categories
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('admin.enrollments.index') }}">
+                    <i class="fas fa-user-graduate me-2"></i> Enrollments
+                </a>
+            </li>
+            
             <li class="nav-item">
                 <a class="nav-link" href="#" onclick="alert('Coming Soon!')">
                     <i class="fas fa-book me-2"></i> E-Learning
@@ -274,6 +310,117 @@
             </div>
         </div>
 
+        <!-- Course Stats Row -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="course-stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h3 class="mb-1">
+                                @php
+                                    $totalCourses = 0;
+                                    $publishedCourses = 0;
+                                    try {
+                                        $totalCourses = \App\Models\Course::count();
+                                        $publishedCourses = \App\Models\Course::where('status', 'published')->count();
+                                    } catch (\Exception $e) {
+                                        // Handle gracefully if tables don't exist yet
+                                    }
+                                @endphp
+                                {{ $totalCourses }}
+                            </h3>
+                            <p class="mb-0 opacity-90">Total Courses</p>
+                            <small class="opacity-75">{{ $publishedCourses }} Published</small>
+                        </div>
+                        <div class="ms-3">
+                            <i class="fas fa-graduation-cap fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="stats-card border-start border-4 border-success">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h4 class="mb-1">
+                                @php
+                                    $totalCategories = 0;
+                                    $activeCategories = 0;
+                                    try {
+                                        $totalCategories = \App\Models\CourseCategory::count();
+                                        $activeCategories = \App\Models\CourseCategory::where('is_active', true)->count();
+                                    } catch (\Exception $e) {
+                                        // Handle gracefully
+                                    }
+                                @endphp
+                                {{ $totalCategories }}
+                            </h4>
+                            <p class="text-muted mb-0">Course Categories</p>
+                            <small class="text-success">{{ $activeCategories }} Active</small>
+                        </div>
+                        <div class="ms-3">
+                            <i class="fas fa-tags fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="stats-card border-start border-4 border-warning">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h4 class="mb-1">
+                                @php
+                                    $totalEnrollments = 0;
+                                    $activeEnrollments = 0;
+                                    try {
+                                        $totalEnrollments = \App\Models\CourseEnrollment::count();
+                                        $activeEnrollments = \App\Models\CourseEnrollment::whereIn('status', ['enrolled', 'active'])->count();
+                                    } catch (\Exception $e) {
+                                        // Handle gracefully
+                                    }
+                                @endphp
+                                {{ $totalEnrollments }}
+                            </h4>
+                            <p class="text-muted mb-0">Course Enrollments</p>
+                            <small class="text-warning">{{ $activeEnrollments }} Active</small>
+                        </div>
+                        <div class="ms-3">
+                            <i class="fas fa-user-plus fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="stats-card border-start border-4 border-info">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h4 class="mb-1">
+                                @php
+                                    $completedEnrollments = 0;
+                                    $completionRate = 0;
+                                    try {
+                                        $completedEnrollments = \App\Models\CourseEnrollment::where('status', 'completed')->count();
+                                        $completionRate = $totalEnrollments > 0 ? round(($completedEnrollments / $totalEnrollments) * 100, 1) : 0;
+                                    } catch (\Exception $e) {
+                                        // Handle gracefully
+                                    }
+                                @endphp
+                                {{ $completedEnrollments }}
+                            </h4>
+                            <p class="text-muted mb-0">Completions</p>
+                            <small class="text-info">{{ $completionRate }}% Rate</small>
+                        </div>
+                        <div class="ms-3">
+                            <i class="fas fa-certificate fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Secondary Stats -->
         <div class="row mb-4">
             <div class="col-lg-3 col-6 mb-3">
@@ -302,6 +449,70 @@
             </div>
         </div>
 
+        <!-- Quick Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Entry Test Actions -->
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.entry-tests.create') }}" class="btn btn-success quick-action-btn w-100">
+                                    <i class="fas fa-clipboard-list me-2"></i>Create Entry Test
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.questions.create') }}" class="btn btn-info quick-action-btn w-100">
+                                    <i class="fas fa-question me-2"></i>Add Question
+                                </a>
+                            </div>
+                            
+                            <!-- Course Actions -->
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.courses.create') }}" class="btn btn-primary quick-action-btn w-100">
+                                    <i class="fas fa-graduation-cap me-2"></i>Create Course
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.course-categories.create') }}" class="btn btn-outline-primary quick-action-btn w-100">
+                                    <i class="fas fa-tags me-2"></i>Add Category
+                                </a>
+                            </div>
+                            
+                            <!-- User Actions -->
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.users.create') }}" class="btn btn-warning quick-action-btn w-100">
+                                    <i class="fas fa-user-plus me-2"></i>Add User
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.enrollments.bulk-enroll') }}" class="btn btn-outline-warning quick-action-btn w-100">
+                                    <i class="fas fa-users me-2"></i>Bulk Enroll
+                                </a>
+                            </div>
+                            
+                            <!-- Analytics Actions -->
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.student-attempts.index') }}" class="btn btn-secondary quick-action-btn w-100">
+                                    <i class="fas fa-chart-bar me-2"></i>View Attempts
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <a href="{{ route('admin.enrollments.export') }}" class="btn btn-outline-secondary quick-action-btn w-100">
+                                    <i class="fas fa-download me-2"></i>Export Data
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Charts Section -->
         <div class="row mb-4">
             <div class="col-lg-8 mb-4">
@@ -319,7 +530,7 @@
                     <h5 class="mb-3">
                         <i class="fas fa-chart-pie me-2"></i>Pass Rate by Test
                     </h5>
-                    @if($testStats->count() > 0)
+                    @if(isset($testStats) && $testStats->count() > 0)
                         @foreach($testStats as $test)
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -344,7 +555,7 @@
             </div>
         </div>
 
-        <!-- Recent Attempts and Quick Actions -->
+        <!-- Recent Attempts and System Status -->
         <div class="row">
             <!-- Recent Attempts -->
             <div class="col-lg-8 mb-4">
@@ -355,7 +566,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-0">
-                        @if($recentAttempts && $recentAttempts->count() > 0)
+                        @if(isset($recentAttempts) && $recentAttempts->count() > 0)
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
                                     <thead class="table-light">
@@ -432,34 +643,10 @@
                 </div>
             </div>
 
-            <!-- Quick Actions -->
+            <!-- System Status and Top Courses -->
             <div class="col-lg-4 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-bolt me-2"></i>Quick Actions
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i>Add New User
-                            </a>
-                            <a href="{{ route('admin.entry-tests.create') }}" class="btn btn-success">
-                                <i class="fas fa-clipboard-list me-2"></i>Create Entry Test
-                            </a>
-                            <a href="{{ route('admin.questions.create') }}" class="btn btn-info">
-                                <i class="fas fa-question me-2"></i>Add Question
-                            </a>
-                            <a href="{{ route('admin.student-attempts.index') }}" class="btn btn-warning">
-                                <i class="fas fa-chart-bar me-2"></i>View All Attempts
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- System Status -->
-                <div class="card mt-4">
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="card-title mb-0">
                             <i class="fas fa-server me-2"></i>System Status
@@ -480,10 +667,56 @@
                             <span>Students</span>
                             <span class="badge bg-info">{{ $stats['total_students'] }}</span>
                         </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Courses</span>
+                            <span class="badge bg-primary">{{ $totalCourses }}</span>
+                        </div>
                         <div class="d-flex justify-content-between align-items-center">
                             <span>Today's Attempts</span>
-                            <span class="badge bg-primary">{{ $stats['today_attempts'] }}</span>
+                            <span class="badge bg-warning">{{ $stats['today_attempts'] }}</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Top Performing Courses -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-star me-2"></i>Top Courses
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @php
+                            $topCourses = collect();
+                            try {
+                                $topCourses = \App\Models\Course::withCount('enrollments')
+                                    ->where('status', 'published')
+                                    ->orderBy('enrollments_count', 'desc')
+                                    ->limit(5)
+                                    ->get();
+                            } catch (\Exception $e) {
+                                // Handle gracefully if tables don't exist yet
+                            }
+                        @endphp
+                        @if($topCourses->count() > 0)
+                            @foreach($topCourses as $course)
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ Str::limit($course->title, 30) }}</h6>
+                                    <small class="text-muted">{{ $course->enrollments_count }} enrollments</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary">{{ ucfirst($course->level) }}</span>
+                                </div>
+                            </div>
+                            @endforeach
+                        @else
+                            <div class="text-center py-3">
+                                <i class="fas fa-graduation-cap fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">No courses available</p>
+                                <small class="text-muted">Create your first course to see stats</small>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

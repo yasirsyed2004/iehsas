@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Course Category - Admin LMS</title>
+    <title>Create Course Category - Admin LMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -69,12 +69,6 @@
 
         .btn-primary:hover {
             background: linear-gradient(135deg, #5a6fd3 0%, #6a3f8e 100%);
-        }
-
-        .alert-info {
-            background-color: #e7f3ff;
-            border-color: #b3d9ff;
-            color: #004085;
         }
 
         @media (max-width: 768px) {
@@ -170,35 +164,34 @@
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2><i class="fas fa-edit me-2"></i>Edit Course Category</h2>
+                <h2><i class="fas fa-tags me-2"></i>Create Course Category</h2>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.course-categories.index') }}">Course Categories</a></li>
-                        <li class="breadcrumb-item active">Edit</li>
+                        <li class="breadcrumb-item active">Create</li>
                     </ol>
                 </nav>
             </div>
         </div>
 
-        <!-- Edit Form -->
+        <!-- Create Form -->
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-edit me-2"></i>Edit Category: {{ $courseCategory->name }}
+                    <i class="fas fa-plus-circle me-2"></i>New Category Information
                 </h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('admin.course-categories.update', $courseCategory) }}" method="POST">
+                <form action="{{ route('admin.course-categories.store') }}" method="POST">
                     @csrf
-                    @method('PUT')
 
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
                                 <label for="name" class="form-label">Category Name <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control @error('name') is-invalid @enderror" 
-                                       id="name" name="name" value="{{ old('name', $courseCategory->name) }}" required autofocus>
+                                       id="name" name="name" value="{{ old('name') }}" required autofocus>
                                 @error('name')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -208,30 +201,11 @@
                             <div class="mb-3">
                                 <label for="description" class="form-label">Description</label>
                                 <textarea class="form-control @error('description') is-invalid @enderror" 
-                                          id="description" name="description" rows="4">{{ old('description', $courseCategory->description) }}</textarea>
+                                          id="description" name="description" rows="4">{{ old('description') }}</textarea>
                                 @error('description')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                                 <div class="form-text">Provide a brief description of this category</div>
-                            </div>
-
-                            <!-- Category Statistics -->
-                            <div class="alert alert-info">
-                                <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Category Statistics</h6>
-                                <div class="row mt-3">
-                                    <div class="col-md-4">
-                                        <small class="text-muted">Total Courses:</small>
-                                        <div class="h5">{{ $courseCategory->courses_count ?? $courseCategory->courses()->count() }}</div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <small class="text-muted">Active Courses:</small>
-                                        <div class="h5">{{ $courseCategory->courses()->where('is_active', true)->count() }}</div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <small class="text-muted">Created:</small>
-                                        <div class="h5">{{ $courseCategory->created_at->format('M d, Y') }}</div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
@@ -241,7 +215,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-icons"></i></span>
                                     <input type="text" class="form-control @error('icon') is-invalid @enderror" 
-                                           id="icon" name="icon" value="{{ old('icon', $courseCategory->icon ?? 'fas fa-book') }}" 
+                                           id="icon" name="icon" value="{{ old('icon', 'fas fa-book') }}" 
                                            placeholder="fas fa-book">
                                 </div>
                                 @error('icon')
@@ -249,7 +223,7 @@
                                 @enderror
                                 <div class="form-text">FontAwesome icon class (e.g., fas fa-code)</div>
                                 <div class="mt-2">
-                                    <small>Preview: <i id="icon-preview" class="{{ $courseCategory->icon ?? 'fas fa-book' }} fa-2x"></i></small>
+                                    <small>Preview: <i id="icon-preview" class="fas fa-book fa-2x"></i></small>
                                 </div>
                             </div>
 
@@ -257,9 +231,9 @@
                                 <label for="color" class="form-label">Theme Color</label>
                                 <div class="input-group">
                                     <input type="color" class="form-control form-control-color @error('color') is-invalid @enderror" 
-                                           id="color" name="color" value="{{ old('color', $courseCategory->color ?? '#6c757d') }}">
+                                           id="color" name="color" value="{{ old('color', '#6c757d') }}">
                                     <input type="text" class="form-control @error('color') is-invalid @enderror" 
-                                           id="color-text" value="{{ old('color', $courseCategory->color ?? '#6c757d') }}" readonly>
+                                           id="color-text" value="{{ old('color', '#6c757d') }}" readonly>
                                 </div>
                                 @error('color')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -270,7 +244,7 @@
                             <div class="mb-3">
                                 <label for="sort_order" class="form-label">Sort Order <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control @error('sort_order') is-invalid @enderror" 
-                                       id="sort_order" name="sort_order" value="{{ old('sort_order', $courseCategory->sort_order) }}" 
+                                       id="sort_order" name="sort_order" value="{{ old('sort_order', 0) }}" 
                                        min="0" required>
                                 @error('sort_order')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -281,7 +255,7 @@
                             <div class="mb-3">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="is_active" 
-                                           name="is_active" value="1" {{ old('is_active', $courseCategory->is_active) ? 'checked' : '' }}>
+                                           name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="is_active">
                                         Active Status
                                     </label>
@@ -295,21 +269,10 @@
                         <a href="{{ route('admin.course-categories.index') }}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left me-1"></i>Cancel
                         </a>
-                        <div>
-                            <button type="button" class="btn btn-danger me-2" onclick="confirmDelete()">
-                                <i class="fas fa-trash me-1"></i>Delete Category
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>Update Category
-                            </button>
-                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Create Category
+                        </button>
                     </div>
-                </form>
-
-                <!-- Delete Form (Hidden) -->
-                <form id="delete-form" action="{{ route('admin.course-categories.destroy', $courseCategory) }}" method="POST" style="display: none;">
-                    @csrf
-                    @method('DELETE')
                 </form>
             </div>
         </div>
@@ -326,17 +289,6 @@
         document.getElementById('color').addEventListener('input', function() {
             document.getElementById('color-text').value = this.value;
         });
-
-        // Confirm delete
-        function confirmDelete() {
-            if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-                @if($courseCategory->courses()->count() > 0)
-                    alert('Cannot delete this category because it has courses assigned to it. Please reassign or delete the courses first.');
-                @else
-                    document.getElementById('delete-form').submit();
-                @endif
-            }
-        }
     </script>
 </body>
 </html>

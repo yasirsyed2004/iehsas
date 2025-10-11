@@ -43,7 +43,7 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
 
-        .cnic-format {
+        .id-format {
             font-family: 'Courier New', monospace;
             letter-spacing: 1px;
         }
@@ -107,7 +107,7 @@
                             </div>
                             <div>
                                 <div class="font-semibold text-blue-800">Attempts</div>
-                                <div class="text-blue-600">1 per CNIC</div>
+                                <div class="text-blue-600">1 per ID</div>
                             </div>
                         </div>
                     </div>
@@ -145,9 +145,25 @@
                                        name="full_name" 
                                        value="{{ old('full_name') }}"
                                        class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('full_name') border-red-500 @enderror"
-                                       placeholder="Enter your full name as per CNIC"
+                                       placeholder="Enter your full name"
                                        required>
                                 @error('full_name')
+                                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Father's Name -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">
+                                    <i class="fas fa-user-tie mr-1"></i>Father's Name <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="father_name" 
+                                       value="{{ old('father_name') }}"
+                                       class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('father_name') border-red-500 @enderror"
+                                       placeholder="Enter your father's name"
+                                       required>
+                                @error('father_name')
                                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -178,27 +194,84 @@
                                        value="{{ old('contact_number') }}"
                                        class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('contact_number') border-red-500 @enderror"
                                        placeholder="03XX-XXXXXXX"
-                                       required>
+                                       required
+                                       id="contactInput">
                                 @error('contact_number')
                                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            <!-- CNIC -->
+                            <!-- Date of Birth -->
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">
-                                    <i class="fas fa-id-card mr-1"></i>CNIC <span class="text-red-500">*</span>
+                                    <i class="fas fa-calendar-alt mr-1"></i>Date of Birth <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" 
+                                       name="date_of_birth" 
+                                       value="{{ old('date_of_birth') }}"
+                                       max="{{ date('Y-m-d', strtotime('-1 day')) }}"
+                                       class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('date_of_birth') border-red-500 @enderror"
+                                       required>
+                                @error('date_of_birth')
+                                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- ID Type -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">
+                                    <i class="fas fa-id-card mr-1"></i>ID Type <span class="text-red-500">*</span>
+                                </label>
+                                <select name="id_type" 
+                                        id="idTypeSelect"
+                                        class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('id_type') border-red-500 @enderror"
+                                        required>
+                                    <option value="">Select ID Type</option>
+                                    @foreach($idTypes as $value => $label)
+                                        <option value="{{ $value }}" {{ old('id_type') == $value ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('id_type')
+                                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- ID Number -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">
+                                    <i class="fas fa-hashtag mr-1"></i><span id="idNumberLabel">ID Number</span> <span class="text-red-500">*</span>
                                 </label>
                                 <input type="text" 
-                                       name="cnic" 
-                                       value="{{ old('cnic') }}"
-                                       class="cnic-format form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('cnic') border-red-500 @enderror"
-                                       placeholder="12345-1234567-1"
-                                       maxlength="15"
+                                       name="id_number" 
+                                       value="{{ old('id_number') }}"
+                                       class="id-format form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('id_number') border-red-500 @enderror"
+                                       placeholder="Please select ID type first"
+                                       disabled
                                        required
-                                       id="cnicInput">
-                                <p class="text-xs text-gray-500 mt-1">Format: 12345-1234567-1</p>
-                                @error('cnic')
+                                       id="idNumberInput">
+                                <p class="text-xs text-gray-500 mt-1" id="formatHint" style="display: none;"></p>
+                                @error('id_number')
+                                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Nationality -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">
+                                    <i class="fas fa-flag mr-1"></i>Nationality <span class="text-red-500">*</span>
+                                </label>
+                                <select name="nationality" 
+                                        class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('nationality') border-red-500 @enderror"
+                                        required>
+                                    @foreach($nationalities as $nationality)
+                                        <option value="{{ $nationality }}" {{ old('nationality', 'Pakistan') == $nationality ? 'selected' : '' }}>
+                                            {{ $nationality }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('nationality')
                                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -238,6 +311,27 @@
                             </div>
                         </div>
 
+                        <!-- Home Address (Full Width) -->
+                        <div class="mt-6">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-home mr-1"></i>Home Address <span class="text-red-500">*</span>
+                            </label>
+                            <textarea name="home_address" 
+                                      rows="3"
+                                      maxlength="1000"
+                                      class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('home_address') border-red-500 @enderror"
+                                      placeholder="Enter your complete home address"
+                                      required
+                                      id="homeAddressInput">{{ old('home_address') }}</textarea>
+                            <div class="flex justify-between mt-1">
+                                <p class="text-xs text-gray-500">Maximum 1000 characters</p>
+                                <p class="text-xs text-gray-500" id="addressCounter">0/1000</p>
+                            </div>
+                            @error('home_address')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         <!-- Terms and Conditions -->
                         <div class="mt-8">
                             <div class="bg-gray-50 rounded-xl p-6">
@@ -248,7 +342,7 @@
                                            required>
                                     <span class="text-sm text-gray-700">
                                         I agree to the <strong>terms and conditions</strong> and confirm that all information provided is accurate. 
-                                        I understand that I can only attempt this test once with my CNIC unless granted special permission by the administration.
+                                        I understand that I can only attempt this test once with my ID unless granted special permission by the administration.
                                     </span>
                                 </label>
                             </div>
@@ -257,6 +351,7 @@
                         <!-- Submit Button -->
                         <div class="text-center mt-8">
                             <button type="submit" 
+                                    id="submitBtn"
                                     class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition duration-300 shadow-lg">
                                 <i class="fas fa-check-circle mr-2"></i>
                                 Complete Registration
@@ -272,34 +367,172 @@
     </div>
 
     <script>
-        // CNIC Input Formatting
-        document.getElementById('cnicInput').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-            let formattedValue = '';
+        // ID Type Configuration
+        const idTypeConfig = {
+            cnic: {
+                label: 'CNIC Number',
+                placeholder: '12345-1234567-1',
+                hint: 'Format: 12345-1234567-1',
+                maxLength: 15,
+                pattern: /^[0-9-]*$/
+            },
+            passport: {
+                label: 'Passport Number',
+                placeholder: 'AB1234567',
+                hint: 'Format: 2 letters + 7 digits',
+                maxLength: 9,
+                pattern: /^[A-Z0-9]*$/
+            },
+            driving_license: {
+                label: 'Driving License Number',
+                placeholder: 'ABC12345',
+                hint: 'Format: 8-15 alphanumeric characters',
+                maxLength: 15,
+                pattern: /^[A-Z0-9]*$/
+            }
+        };
+
+        // Elements
+        const idTypeSelect = document.getElementById('idTypeSelect');
+        const idNumberInput = document.getElementById('idNumberInput');
+        const idNumberLabel = document.getElementById('idNumberLabel');
+        const formatHint = document.getElementById('formatHint');
+
+        // Handle ID Type Selection
+        idTypeSelect.addEventListener('change', function() {
+            const selectedType = this.value;
             
-            if (value.length > 0) {
-                formattedValue += value.substring(0, 5);
+            if (selectedType && idTypeConfig[selectedType]) {
+                const config = idTypeConfig[selectedType];
+                
+                // Enable and configure input
+                idNumberInput.disabled = false;
+                idNumberInput.placeholder = config.placeholder;
+                idNumberInput.maxLength = config.maxLength;
+                idNumberInput.value = '';
+                
+                // Update label and hint
+                idNumberLabel.textContent = config.label;
+                formatHint.textContent = config.hint;
+                formatHint.style.display = 'block';
+                
+                idNumberInput.focus();
+            } else {
+                // Disable input
+                idNumberInput.disabled = true;
+                idNumberInput.placeholder = 'Please select ID type first';
+                idNumberInput.value = '';
+                
+                // Reset label and hide hint
+                idNumberLabel.textContent = 'ID Number';
+                formatHint.style.display = 'none';
             }
-            if (value.length > 5) {
-                formattedValue += '-' + value.substring(5, 12);
-            }
-            if (value.length > 12) {
-                formattedValue += '-' + value.substring(12, 13);
-            }
-            
-            e.target.value = formattedValue;
         });
+
+        // Handle ID Number Input
+        idNumberInput.addEventListener('input', function() {
+            const idType = idTypeSelect.value;
+            const config = idTypeConfig[idType];
+            
+            if (!config) return;
+            
+            let value = this.value.toUpperCase();
+            
+            // Apply pattern filtering
+            if (config.pattern) {
+                value = value.replace(new RegExp('[^' + config.pattern.source.slice(2, -2) + ']', 'g'), '');
+            }
+            
+            // Special formatting for CNIC
+            if (idType === 'cnic') {
+                const digits = value.replace(/\D/g, '');
+                
+                if (digits.length <= 5) {
+                    value = digits;
+                } else if (digits.length <= 12) {
+                    value = digits.slice(0, 5) + '-' + digits.slice(5);
+                } else if (digits.length <= 13) {
+                    value = digits.slice(0, 5) + '-' + digits.slice(5, 12) + '-' + digits.slice(12, 13);
+                } else {
+                    value = digits.slice(0, 5) + '-' + digits.slice(5, 12) + '-' + digits.slice(12, 13);
+                }
+            }
+            
+            this.value = value;
+        });
+
+        // Contact Number Formatting
+        const contactInput = document.getElementById('contactInput');
+        contactInput.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            
+            if (value.length > 0 && !value.startsWith('03')) {
+                if (value.startsWith('3')) {
+                    value = '0' + value;
+                } else if (!value.startsWith('0')) {
+                    value = '03' + value;
+                }
+            }
+            
+            if (value.length > 11) {
+                value = value.slice(0, 11);
+            }
+            
+            this.value = value;
+        });
+
+        // Address Character Counter
+        const homeAddressInput = document.getElementById('homeAddressInput');
+        const addressCounter = document.getElementById('addressCounter');
+        
+        homeAddressInput.addEventListener('input', function() {
+            const length = this.value.length;
+            addressCounter.textContent = `${length}/1000`;
+            
+            if (length > 950) {
+                addressCounter.style.color = '#ffc107';
+            } else if (length >= 1000) {
+                addressCounter.style.color = '#dc3545';
+            } else {
+                addressCounter.style.color = '#6b7280';
+            }
+        });
+
+        // Initialize character counter
+        if (homeAddressInput.value) {
+            homeAddressInput.dispatchEvent(new Event('input'));
+        }
 
         // Form validation
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
-            const cnic = document.getElementById('cnicInput').value;
-            const cnicPattern = /^\d{5}-\d{7}-\d{1}$/;
+            const idType = idTypeSelect.value;
+            const idNumber = idNumberInput.value;
+            const submitBtn = document.getElementById('submitBtn');
             
-            if (!cnicPattern.test(cnic)) {
+            if (!idType) {
                 e.preventDefault();
-                alert('Please enter a valid CNIC in format: 12345-1234567-1');
-                document.getElementById('cnicInput').focus();
+                alert('Please select an ID type.');
+                idTypeSelect.focus();
                 return;
+            }
+            
+            if (!idNumber.trim()) {
+                e.preventDefault();
+                alert('Please enter your ID number.');
+                idNumberInput.focus();
+                return;
+            }
+            
+            // Disable submit button to prevent double submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+        });
+
+        // Initialize form state
+        document.addEventListener('DOMContentLoaded', function() {
+            // Trigger ID type change if there's an old value
+            if (idTypeSelect.value) {
+                idTypeSelect.dispatchEvent(new Event('change'));
             }
         });
 

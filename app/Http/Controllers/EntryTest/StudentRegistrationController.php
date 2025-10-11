@@ -4,71 +4,235 @@
 namespace App\Http\Controllers\EntryTest;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StudentRegistrationRequest;
 use App\Models\Student;
 use App\Models\EntryTest;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class StudentRegistrationController extends Controller
 {
+    /**
+     * Show the registration form
+     */
     public function showForm()
     {
         $entryTest = EntryTest::where('is_active', true)->first();
         
         if (!$entryTest) {
-            return redirect()->route('home')->with('error', 'No active entry test available.');
+            return redirect()->route('home')
+                ->with('error', 'No active entry test available.');
         }
 
-        return view('entry-test.register', compact('entryTest'));
+        // Pass additional data needed for the enhanced form
+        $nationalities = config('nationalities');
+        
+        $idTypes = [
+            'cnic' => 'CNIC',
+            'passport' => 'Passport',
+            'driving_license' => 'Driving License'
+        ];
+
+        return view('entry-test.register', compact('entryTest', 'nationalities', 'idTypes'));
     }
 
-    public function store(Request $request)
+    /**
+     * Store the registration data
+     */
+    public function store(StudentRegistrationRequest $request)
     {
-        $request->validate([
-            'full_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'contact_number' => 'required|string|max:20',
-            'cnic' => [
-                'required',
-                'string',
-                'regex:/^\d{5}-\d{7}-\d{1}$/',
-                'unique:students,cnic'
-            ],
-            'gender' => 'required|in:male,female,other',
-            'qualification' => 'required|string|max:255'
-        ], [
-            'cnic.regex' => 'CNIC must be in format: 12345-1234567-1',
-            'cnic.unique' => 'A student with this CNIC has already registered for the test.'
-        ]);
-
-        // Check if student with this CNIC already exists and has attempted
-        $existingStudent = Student::where('cnic', $request->cnic)->first();
+        // Get cleaned and validated data from Form Request
+        $validatedData = $request->getCleanedData();
         
-        if ($existingStudent && !$existingStudent->canAttemptTest()) {
-            return back()->withErrors([
-                'cnic' => 'You have already attempted the test. Contact admin for retake permission.'
-            ])->withInput();
+        // Check if student already exists with this ID combination
+        $existingStudent = Student::where('id_type', $validatedData['id_type'])
+                                 ->where('id_number', $validatedData['id_number'])
+                                 ->first();
+        
+        if ($existingStudent) {
+            // Student exists - check if they can attempt test again
+            if (!$existingStudent->canAttemptTest()) {
+                return back()->withErrors([
+                    'id_number' => 'You have already attempted the test with this ' . 
+                                  $existingStudent->id_type_label . 
+                                  '. Contact admin for retake permission.'
+                ])->withInput();
+            }
+            
+            // Student can retake - update their information
+            $student = $this->updateExistingStudent($existingStudent, $validatedData);
+            
+            $message = 'Registration updated successfully! You are allowed to retake the test.';
+        } else {
+            // New student - create record
+            $student = $this->createNewStudent($validatedData);
+            
+            $message = 'Registration successful! Please review the test instructions.';
         }
-
-        // Create or update student
-        $student = Student::updateOrCreate(
-            ['cnic' => $request->cnic],
-            [
-                'full_name' => $request->full_name,
-                'email' => $request->email,
-                'contact_number' => $request->contact_number,
-                'gender' => $request->gender,
-                'qualification' => $request->qualification
-            ]
-        );
-
+        
         // Store student ID in session for test flow
         session(['registered_student_id' => $student->id]);
-
-        // Get the active entry test
+        
+        // Get the active entry test for redirection
         $entryTest = EntryTest::where('is_active', true)->first();
-
+        
         return redirect()->route('entry-test.instructions', $entryTest->id)
-            ->with('success', 'Registration successful! Please review the test instructions.');
+            ->with('success', $message);
+    }
+
+    /**
+     * Create a new student record
+     */
+    protected function createNewStudent(array $data): Student
+    {
+        return Student::create([
+            'full_name' => $data['full_name'],
+            'father_name' => $data['father_name'],
+            'email' => $data['email'],
+            'contact_number' => $data['contact_number'],
+            'date_of_birth' => $data['date_of_birth'],
+            'id_type' => $data['id_type'],
+            'id_number' => $data['id_number'],
+            'nationality' => $data['nationality'],
+            'gender' => $data['gender'],
+            'qualification' => $data['qualification'],
+            'home_address' => $data['home_address'],
+            'is_retake_allowed' => false // Default to false for new students
+        ]);
+    }
+
+    /**
+     * Update existing student record (for retakes)
+     */
+    protected function updateExistingStudent(Student $student, array $data): Student
+    {
+        $student->update([
+            'full_name' => $data['full_name'],
+            'father_name' => $data['father_name'],
+            'email' => $data['email'],
+            'contact_number' => $data['contact_number'],
+            'date_of_birth' => $data['date_of_birth'],
+            'nationality' => $data['nationality'],
+            'gender' => $data['gender'],
+            'qualification' => $data['qualification'],
+            'home_address' => $data['home_address']
+            // Note: We don't update id_type, id_number, or is_retake_allowed
+        ]);
+        
+        return $student->fresh(); // Return fresh instance
+    }
+
+    /**
+     * Helper method to format ID number based on type
+     * (This is also available in the Student model, but kept here for direct use)
+     */
+    protected function formatIdNumber(string $type, string $number): string
+    {
+        $cleaned = preg_replace('/[^A-Z0-9]/i', '', $number);
+        
+        if ($type === 'cnic' && strlen($cleaned) === 13) {
+            return substr($cleaned, 0, 5) . '-' . 
+                   substr($cleaned, 5, 7) . '-' . 
+                   substr($cleaned, 12, 1);
+        }
+        
+        return strtoupper($cleaned);
+    }
+
+    /**
+     * AJAX endpoint to validate ID format (optional - for real-time validation)
+     */
+    public function validateId(Request $request)
+    {
+        $request->validate([
+            'id_type' => 'required|in:cnic,passport,driving_license',
+            'id_number' => 'required|string'
+        ]);
+
+        $idType = $request->id_type;
+        $idNumber = $this->formatIdNumber($idType, $request->id_number);
+
+        // Check format
+        $isValidFormat = Student::validateIdFormat($idType, $idNumber);
+        
+        if (!$isValidFormat) {
+            return response()->json([
+                'valid' => false,
+                'message' => $this->getFormatMessage($idType),
+                'formatted' => $idNumber
+            ]);
+        }
+
+        // Check for duplicates
+        $existingStudent = Student::where('id_type', $idType)
+                                 ->where('id_number', $idNumber)
+                                 ->first();
+
+        if ($existingStudent && !$existingStudent->canAttemptTest()) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'This ' . $existingStudent->id_type_label . ' has already been used for test registration.',
+                'formatted' => $idNumber
+            ]);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'message' => 'Valid ' . $this->getIdTypeLabel($idType),
+            'formatted' => $idNumber
+        ]);
+    }
+
+    /**
+     * Get format guidance message for ID types
+     */
+    protected function getFormatMessage(string $idType): string
+    {
+        return match($idType) {
+            'cnic' => 'Format: 12345-1234567-1 (13 digits with dashes)',
+            'passport' => 'Format: AB1234567 (2 letters + 7 digits)',
+            'driving_license' => 'Format: ABC12345 (8-15 alphanumeric characters)',
+            default => 'Invalid format'
+        };
+    }
+
+    /**
+     * Get ID type label
+     */
+    protected function getIdTypeLabel(string $idType): string
+    {
+        return match($idType) {
+            'cnic' => 'CNIC',
+            'passport' => 'Passport',
+            'driving_license' => 'Driving License',
+            default => 'ID'
+        };
+    }
+
+    /**
+     * Show registration success page (optional)
+     */
+    public function success()
+    {
+        $studentId = session('registered_student_id');
+        
+        if (!$studentId) {
+            return redirect()->route('entry-test.register')
+                ->with('error', 'No registration found.');
+        }
+
+        $student = Student::findOrFail($studentId);
+        
+        return view('entry-test.registration-success', compact('student'));
+    }
+
+    /**
+     * Clear registration session (if needed)
+     */
+    public function clearSession()
+    {
+        session()->forget('registered_student_id');
+        
+        return redirect()->route('entry-test.index')
+            ->with('info', 'Registration session cleared.');
     }
 }

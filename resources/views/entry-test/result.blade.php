@@ -189,7 +189,7 @@
                         <p class="mb-1"><strong>Email:</strong> {{ $attempt->student->email ?? 'N/A' }}</p>
                     </div>
                     <div class="col-md-6">
-                        <p class="mb-1"><strong>CNIC:</strong> {{ $attempt->student->cnic ?? 'N/A' }}</p>
+                        <p class="mb-1"><strong>{{ $attempt->student->id_type_label ?? 'ID' }}:</strong> {{ $attempt->student->formatted_id ?? 'N/A' }}</p>
                         <p class="mb-1"><strong>Test Date:</strong> {{ $attempt->completed_at->format('M j, Y') }}</p>
                     </div>
                 </div>

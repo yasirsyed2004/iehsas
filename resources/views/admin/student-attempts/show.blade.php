@@ -308,7 +308,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="text-muted">CNIC</h6>
-                                    <p class="fw-bold">{{ $attempt->student->cnic ?? 'N/A' }}</p>
+                                    <p class="fw-bold">{{ $attempt->student->formatted_id ?? 'N/A' }}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="text-muted">Contact</h6>

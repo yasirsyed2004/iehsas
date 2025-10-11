@@ -1,10 +1,12 @@
 {{-- File: resources/views/entry-test/instructions.blade.php --}}
+{{-- FIXED: Updated to use new ID fields instead of old CNIC field --}}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Instructions - {{ $entryTest->title }}</title>
+    <title>Test Instructions - IEHSAS Entry Test</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -16,7 +18,9 @@
         .glass-effect {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
     </style>
 </head>
@@ -29,10 +33,13 @@
                     <div class="text-white text-2xl font-bold">
                         <i class="fas fa-graduation-cap mr-2"></i>IEHSAS
                     </div>
-                    <div class="text-white">
-                        <span class="bg-white bg-opacity-20 px-4 py-2 rounded-full">
-                            <i class="fas fa-user mr-2"></i>{{ $student->full_name }}
-                        </span>
+                    <div class="space-x-4">
+                        <a href="{{ route('entry-test.index') }}" class="text-white hover:text-gray-200 transition duration-300">
+                            <i class="fas fa-arrow-left mr-1"></i>Back to Test Info
+                        </a>
+                        <a href="{{ route('home') }}" class="text-white hover:text-gray-200 transition duration-300">
+                            <i class="fas fa-home mr-1"></i>Home
+                        </a>
                     </div>
                 </div>
             </div>
@@ -66,7 +73,8 @@
                                 <strong>Contact:</strong> {{ $student->contact_number }}
                             </div>
                             <div>
-                                <strong>CNIC:</strong> {{ $student->cnic }}<br>
+                                {{-- FIXED: Display ID Type and Number instead of CNIC --}}
+                                <strong>{{ $student->id_type_label }}:</strong> {{ $student->formatted_id }}<br>
                                 <strong>Gender:</strong> {{ ucfirst($student->gender) }}<br>
                                 <strong>Qualification:</strong> {{ $student->qualification }}
                             </div>
@@ -134,45 +142,51 @@
 
                         <div class="bg-green-50 border-l-4 border-green-400 p-6 rounded-r-xl">
                             <h4 class="font-bold text-green-800 mb-3">
-                                <i class="fas fa-check-circle mr-2"></i>Test Instructions
+                                <i class="fas fa-lightbulb mr-2"></i>Tips for Success
                             </h4>
                             <ul class="text-green-700 space-y-1">
                                 <li><i class="fas fa-check mr-2"></i>Read each question carefully before answering</li>
-                                <li><i class="fas fa-check mr-2"></i>Select only one answer per question</li>
-                                <li><i class="fas fa-check mr-2"></i>You can navigate between questions freely</li>
-                                <li><i class="fas fa-check mr-2"></i>Submit your test before time runs out</li>
-                                <li><i class="fas fa-check mr-2"></i>Ensure stable internet connection</li>
+                                <li><i class="fas fa-check mr-2"></i>Manage your time effectively</li>
+                                <li><i class="fas fa-check mr-2"></i>Review your answers before submitting</li>
+                                <li><i class="fas fa-check mr-2"></i>Stay calm and focused throughout the test</li>
                             </ul>
                         </div>
                     </div>
 
-                    <!-- Camera Permission Section -->
-                    <div class="bg-gray-50 rounded-xl p-6 mb-8 text-center">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4">
-                            <i class="fas fa-camera mr-2"></i>Camera & Microphone Setup
+                    <!-- System Requirements -->
+                    <div class="bg-gray-50 rounded-xl p-6 mb-8">
+                        <h4 class="font-bold text-gray-800 mb-3">
+                            <i class="fas fa-desktop mr-2"></i>System Requirements
                         </h4>
-                        <p class="text-gray-600 mb-4">
-                            Click the button below to enable camera and microphone access.
-                        </p>
-                        <button type="button" id="requestPermissions" 
-                                class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition duration-300 mb-4">
-                            <i class="fas fa-video mr-2"></i>Enable Camera & Microphone
-                        </button>
-                        <div id="permissionStatus" class="text-sm"></div>
+                        <div class="grid md:grid-cols-2 gap-4 text-gray-700">
+                            <div>
+                                <ul class="space-y-1">
+                                    <li><i class="fas fa-check text-green-500 mr-2"></i>Modern web browser (Chrome, Firefox, Safari)</li>
+                                    <li><i class="fas fa-check text-green-500 mr-2"></i>Stable internet connection</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <ul class="space-y-1">
+                                    <li><i class="fas fa-check text-green-500 mr-2"></i>Working webcam and microphone</li>
+                                    <li><i class="fas fa-check text-green-500 mr-2"></i>Quiet, well-lit environment</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Start Test Section -->
+                    <!-- Ready to Start -->
                     <div class="text-center">
                         <form action="{{ route('entry-test.start', $entryTest->id) }}" method="POST" id="startTestForm">
                             @csrf
-                            <button type="submit" id="startTest" disabled
-                                    class="bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:from-green-600 hover:to-blue-700 transform hover:scale-105 transition duration-300 shadow-lg">
-                                <i class="fas fa-play mr-2"></i>
-                                Start Test
+                            <button type="submit" 
+                                    id="startButton"
+                                    class="bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:from-green-600 hover:to-blue-700 transform hover:scale-105 transition duration-300 shadow-lg">
+                                <i class="fas fa-play-circle mr-2"></i>
+                                Start Test Now
                             </button>
                         </form>
                         <p class="text-gray-600 mt-4 text-sm">
-                            Once you start the test, the timer will begin immediately.
+                            By starting the test, you agree to follow all the instructions and rules mentioned above.
                         </p>
                     </div>
                 </div>
@@ -181,41 +195,37 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const requestBtn = document.getElementById('requestPermissions');
-            const startBtn = document.getElementById('startTest');
-            const statusDiv = document.getElementById('permissionStatus');
-
-            requestBtn.addEventListener('click', async function() {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: true, 
-                        audio: true 
-                    });
-                    
-                    statusDiv.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Camera and microphone access granted</span>';
-                    startBtn.disabled = false;
-                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    requestBtn.textContent = 'Permissions Granted';
-                    requestBtn.disabled = true;
-                    requestBtn.classList.add('bg-green-500');
-                    requestBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-                    
-                    // Stop the stream for now
-                    stream.getTracks().forEach(track => track.stop());
-                } catch (error) {
-                    statusDiv.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Please allow camera and microphone access to continue</span>';
-                    console.error('Error accessing media devices:', error);
-                }
-            });
-
-            // Prevent form submission without permissions
-            document.getElementById('startTestForm').addEventListener('submit', function(e) {
-                if (startBtn.disabled) {
-                    e.preventDefault();
-                    alert('Please enable camera and microphone access first.');
-                }
-            });
+        // Request camera permission before starting test
+        document.getElementById('startTestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const startButton = document.getElementById('startButton');
+            const originalText = startButton.innerHTML;
+            
+            try {
+                startButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Requesting Camera Access...';
+                startButton.disabled = true;
+                
+                // Request camera and microphone permissions
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                // Stop the stream after getting permission
+                stream.getTracks().forEach(track => track.stop());
+                
+                // If successful, submit the form
+                startButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Starting Test...';
+                this.submit();
+                
+            } catch (error) {
+                console.error('Camera permission denied:', error);
+                startButton.innerHTML = originalText;
+                startButton.disabled = false;
+                
+                alert('Camera and microphone access is required to start the test. Please enable permissions and try again.');
+            }
         });
     </script>
 </body>

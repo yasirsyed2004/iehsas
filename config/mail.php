@@ -111,8 +111,41 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'yasir13abbas96@gmail.com'),
+        'name' => env('MAIL_FROM_NAME', 'IEHSAS Admissions'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | If you are using Markdown based email rendering, you may configure your
+    | theme and component paths here, allowing you to customize the design
+    | of the emails. Or, you may simply stick with the Laravel defaults!
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'default',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | IEHSAS Enrollment Specific Settings
+    |--------------------------------------------------------------------------
+    */
+    'enrollment' => [
+        'from' => [
+            'address' => env('ENROLLMENT_FROM_ADDRESS', 'yasir13abbas96@gmail.com'),
+            'name' => env('ENROLLMENT_FROM_NAME', 'IEHSAS Admissions Office'),
+        ],
+        'reply_to' => env('ENROLLMENT_REPLY_TO', 'yasir13abbas96@gmail.com'),
+        'verification_code_expiry_hours' => env('ENROLLMENT_CODE_EXPIRY_HOURS', 48),
     ],
 
 ];

@@ -131,8 +131,11 @@ class Student extends Model
             return true;
         }
 
-        $expiryHours = config('mail.enrollment.verification_code_expiry_hours', 48);
-        $expiryTime = $this->enrollment_code_generated_at->addHours($expiryHours);
+        // FIXED: Cast configuration value to integer to prevent Carbon TypeError
+$expiryHours = (int) config('mail.enrollment.verification_code_expiry_hours', 48);
+
+// Use copy() to avoid mutating the original Carbon instance
+$expiryTime = $this->enrollment_code_generated_at->copy()->addHours($expiryHours);
         
         return now()->isAfter($expiryTime);
     }

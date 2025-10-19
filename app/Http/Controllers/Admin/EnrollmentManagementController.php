@@ -236,7 +236,7 @@ class EnrollmentManagementController extends Controller
     {
         $config = $this->mailService->getConfigurationStatus();
         
-        return view('admin.enrollments.email-test', compact('config'));
+        return view('admin.enrollments.test-email', compact('config'));
     }
 
     /**

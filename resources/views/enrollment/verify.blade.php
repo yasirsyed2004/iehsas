@@ -1,3 +1,4 @@
+{{-- File: resources/views/enrollment/verify.blade.php --}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,9 +30,15 @@
 
             <!-- Verification Form -->
             <div class="glass-effect rounded-2xl p-8 shadow-2xl">
-                @if ($errors->has('general'))
+                {{-- Show ALL errors for debugging --}}
+                @if ($errors->any())
                     <div class="mb-6 p-4 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg">
-                        <p class="text-red-300 text-sm">{{ $errors->first('general') }}</p>
+                        <h4 class="text-red-300 font-semibold mb-2">Errors:</h4>
+                        <ul class="text-red-300 text-sm space-y-1">
+                            @foreach ($errors->all() as $error)
+                                <li>• {{ $error }}</li>
+                            @endforeach
+                        </ul>
                     </div>
                 @endif
 
@@ -41,8 +48,11 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('enrollment.verify.submit') }}" x-data="enrollmentForm">
+                <form method="POST" action="{{ route('enrollment.verify.submit') }}" x-data="enrollmentForm" @submit="prepareSubmission()">
                     @csrf
+
+                    <!-- Hidden field for clean ID number (what gets submitted) -->
+                    <input type="hidden" name="id_number" x-model="cleanIdNumber">
 
                     <!-- Instructions -->
                     <div class="mb-6 p-4 bg-blue-500 bg-opacity-20 border border-blue-500 rounded-lg">
@@ -56,21 +66,21 @@
                     <div class="mb-6">
                         <label class="block text-white text-sm font-medium mb-3">ID Type</label>
                         <div class="grid grid-cols-3 gap-3">
-                            <label class="relative">
-                                <input type="radio" name="id_type" value="cnic" x-model="idType" class="sr-only peer">
-                                <div class="glass-effect p-3 rounded-lg text-center cursor-pointer peer-checked:bg-blue-500 peer-checked:bg-opacity-30 peer-checked:border-blue-400 transition-all duration-200">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="id_type" value="cnic" x-model="idType" class="hidden peer" required>
+                                <div class="p-3 text-center border border-white border-opacity-30 rounded-lg peer-checked:bg-blue-500 peer-checked:bg-opacity-30 peer-checked:border-blue-400 transition-all duration-200">
                                     <div class="text-white text-sm font-medium">CNIC</div>
                                 </div>
                             </label>
-                            <label class="relative">
-                                <input type="radio" name="id_type" value="passport" x-model="idType" class="sr-only peer">
-                                <div class="glass-effect p-3 rounded-lg text-center cursor-pointer peer-checked:bg-blue-500 peer-checked:bg-opacity-30 peer-checked:border-blue-400 transition-all duration-200">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="id_type" value="passport" x-model="idType" class="hidden peer" required>
+                                <div class="p-3 text-center border border-white border-opacity-30 rounded-lg peer-checked:bg-blue-500 peer-checked:bg-opacity-30 peer-checked:border-blue-400 transition-all duration-200">
                                     <div class="text-white text-sm font-medium">Passport</div>
                                 </div>
                             </label>
-                            <label class="relative">
-                                <input type="radio" name="id_type" value="driving_license" x-model="idType" class="sr-only peer">
-                                <div class="glass-effect p-3 rounded-lg text-center cursor-pointer peer-checked:bg-blue-500 peer-checked:bg-opacity-30 peer-checked:border-blue-400 transition-all duration-200">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="id_type" value="driving_license" x-model="idType" class="hidden peer" required>
+                                <div class="p-3 text-center border border-white border-opacity-30 rounded-lg peer-checked:bg-blue-500 peer-checked:bg-opacity-30 peer-checked:border-blue-400 transition-all duration-200">
                                     <div class="text-white text-sm font-medium">License</div>
                                 </div>
                             </label>
@@ -80,13 +90,12 @@
                         @enderror
                     </div>
 
-                    <!-- ID Number Input -->
+                    <!-- ID Number Input (Display Only) -->
                     <div class="mb-6" x-show="idType">
                         <label class="block text-white text-sm font-medium mb-2" x-text="getIdLabel()"></label>
                         <input 
                             type="text" 
-                            name="id_number" 
-                            x-model="idNumber"
+                            x-model="displayIdNumber"
                             @input="formatIdNumber()"
                             :placeholder="getIdPlaceholder()"
                             :maxlength="getIdMaxLength()"
@@ -117,6 +126,14 @@
                         @enderror
                     </div>
 
+                    <!-- Debug Info (remove this after testing) -->
+                    <div class="mb-4 p-3 bg-gray-800 bg-opacity-50 rounded text-white text-xs" x-show="idType">
+                        <strong>DEBUG:</strong><br>
+                        Display: <span x-text="displayIdNumber"></span><br>
+                        Clean: <span x-text="cleanIdNumber"></span><br>
+                        Code: <span x-text="verificationCode"></span>
+                    </div>
+
                     <!-- Submit Button -->
                     <button 
                         type="submit" 
@@ -145,7 +162,8 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('enrollmentForm', () => ({
                 idType: '{{ old('id_type') }}',
-                idNumber: '{{ old('id_number') }}',
+                displayIdNumber: '{{ old('id_number') }}', // What user sees (with dashes)
+                cleanIdNumber: '',  // What gets submitted (without dashes)
                 verificationCode: '{{ old('verification_code') }}',
 
                 getIdLabel() {
@@ -159,54 +177,80 @@
 
                 getIdPlaceholder() {
                     switch(this.idType) {
-                        case 'cnic': return '12345-1234567-1';
+                        case 'cnic': return '37203-2524192-3';
                         case 'passport': return 'AB1234567';
-                        case 'driving_license': return 'ABC12345';
-                        default: return 'Enter your ID number';
+                        case 'driving_license': return 'ABC123456789';
+                        default: return '';
                     }
                 },
 
                 getIdMaxLength() {
                     switch(this.idType) {
-                        case 'cnic': return 15; // with dashes
-                        case 'passport': return 9;
-                        case 'driving_license': return 15;
+                        case 'cnic': return 15; // With dashes
+                        case 'passport': return 20;
+                        case 'driving_license': return 20;
                         default: return 20;
                     }
                 },
 
                 getIdHint() {
                     switch(this.idType) {
-                        case 'cnic': return 'Format: 12345-1234567-1 (13 digits)';
-                        case 'passport': return 'Format: AB1234567 (2 letters + 7 digits)';
-                        case 'driving_license': return 'Format: 8-15 alphanumeric characters';
+                        case 'cnic': return 'Format: 12345-1234567-1 (13 digits with dashes)';
+                        case 'passport': return 'Passport number from your passport document';
+                        case 'driving_license': return 'License number from your driving license';
                         default: return '';
                     }
                 },
 
                 formatIdNumber() {
                     if (this.idType === 'cnic') {
-                        // Auto-format CNIC with dashes
-                        let cleaned = this.idNumber.replace(/[^0-9]/g, '');
+                        // Remove all non-digits first
+                        let cleaned = this.displayIdNumber.replace(/[^0-9]/g, '');
+                        
+                        // Store clean version for submission (just digits)
+                        this.cleanIdNumber = cleaned.substring(0, 13);
+                        
+                        // Format for display with dashes: XXXXX-XXXXXXX-X
+                        let formatted = cleaned;
                         if (cleaned.length >= 5) {
-                            cleaned = cleaned.substring(0, 5) + '-' + cleaned.substring(5);
+                            formatted = cleaned.substring(0, 5) + '-' + cleaned.substring(5);
                         }
-                        if (cleaned.length >= 13) {
-                            cleaned = cleaned.substring(0, 13) + '-' + cleaned.substring(13, 14);
+                        if (cleaned.length >= 12) {
+                            formatted = formatted.substring(0, 13) + '-' + cleaned.substring(12, 13);
                         }
-                        this.idNumber = cleaned.substring(0, 15);
-                    } else if (this.idType === 'passport' || this.idType === 'driving_license') {
-                        this.idNumber = this.idNumber.toUpperCase();
+                        
+                        // Update display
+                        this.displayIdNumber = formatted.substring(0, 15);
+                    } else {
+                        // For passport and license, just uppercase and limit length
+                        this.displayIdNumber = this.displayIdNumber.toUpperCase().substring(0, 20);
+                        this.cleanIdNumber = this.displayIdNumber;
                     }
                 },
 
                 canSubmit() {
                     return this.idType && 
-                           this.idNumber.length > 0 && 
+                           this.cleanIdNumber && 
+                           this.cleanIdNumber.trim().length > 0 && 
+                           this.verificationCode && 
                            this.verificationCode.length === 4;
+                },
+
+                prepareSubmission() {
+                    // Ensure clean ID number is set before form submission
+                    if (this.idType === 'cnic') {
+                        this.cleanIdNumber = this.displayIdNumber.replace(/[^0-9]/g, '').substring(0, 13);
+                    } else {
+                        this.cleanIdNumber = this.displayIdNumber;
+                    }
+                    console.log('Submitting:', {
+                        idType: this.idType,
+                        cleanId: this.cleanIdNumber,
+                        code: this.verificationCode
+                    });
                 }
             }))
-        })
+        });
     </script>
 </body>
 </html>

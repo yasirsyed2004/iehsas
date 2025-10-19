@@ -61,22 +61,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin'])->group(functi
         
         // Dashboard and student listings
         Route::get('/', [EnrollmentManagementController::class, 'index'])->name('index');
+        
+        // FIXED: Email configuration and testing routes MUST come BEFORE the catch-all /{student} route
+        Route::get('/test-email', [EnrollmentManagementController::class, 'showEmailTest'])->name('test-email');
+        Route::post('/test-email', [EnrollmentManagementController::class, 'sendTestEmail'])->name('test-email.send');
+        
+        // Bulk operations (also need to come before /{student} route)
+        Route::post('/bulk/send-forms', [EnrollmentManagementController::class, 'bulkSendForms'])->name('bulk.send-forms');
+        Route::post('/bulk/approve-documents', [EnrollmentManagementController::class, 'bulkApproveDocuments'])->name('bulk.approve-documents');
+        
+        // Document review actions (also need to come before /{student} route)
+        Route::post('/document/{document}/approve', [EnrollmentManagementController::class, 'approveDocument'])->name('document.approve');
+        Route::post('/document/{document}/reject', [EnrollmentManagementController::class, 'rejectDocument'])->name('document.reject');
+        
+        // IMPORTANT: This catch-all route MUST be LAST because it matches any string
         Route::get('/{student}', [EnrollmentManagementController::class, 'show'])->name('show');
         
         // Enrollment form management
         Route::post('/{student}/send-form', [EnrollmentManagementController::class, 'sendEnrollmentForm'])->name('send-form');
-        
-        // Document review actions
-        Route::post('/document/{document}/approve', [EnrollmentManagementController::class, 'approveDocument'])->name('document.approve');
-        Route::post('/document/{document}/reject', [EnrollmentManagementController::class, 'rejectDocument'])->name('document.reject');
-        
-        // Bulk operations
-        Route::post('/bulk/send-forms', [EnrollmentManagementController::class, 'bulkSendForms'])->name('bulk.send-forms');
-        Route::post('/bulk/approve-documents', [EnrollmentManagementController::class, 'bulkApproveDocuments'])->name('bulk.approve-documents');
-        
-        // Email configuration and testing
-        Route::get('/test-email', [EnrollmentManagementController::class, 'showEmailTest'])->name('test-email');
-        Route::post('/test-email', [EnrollmentManagementController::class, 'sendTestEmail'])->name('test-email.send');
     });
     
     // Enhanced student attempts with enrollment actions

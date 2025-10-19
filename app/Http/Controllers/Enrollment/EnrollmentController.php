@@ -23,37 +23,59 @@ class EnrollmentController extends Controller
      * Verify enrollment code and redirect to document upload
      */
     public function verifyCode(EnrollmentVerificationRequest $request)
-    {
-        $student = Student::where('id_type', $request->id_type)
-                         ->where('id_number', $this->cleanIdNumber($request->id_number, $request->id_type))
-                         ->first();
-
-        if (!$student) {
-            return back()->withErrors(['id_number' => 'No student found with this ID.']);
-        }
-
-        // Check if student is eligible for enrollment
-        if (!$student->isEligibleForEnrollment()) {
-            return back()->withErrors(['general' => 'You are not eligible for enrollment at this time.']);
-        }
-
-        // Verify the code
-        if (!$student->verifyEnrollmentCode($request->verification_code)) {
-            if ($student->enrollment_code_used) {
-                return back()->withErrors(['verification_code' => 'This verification code has already been used.']);
-            } elseif ($student->isEnrollmentCodeExpired()) {
-                return back()->withErrors(['verification_code' => 'This verification code has expired. Please contact admissions for a new code.']);
-            } else {
-                return back()->withErrors(['verification_code' => 'Invalid verification code.']);
-            }
-        }
-
-        // Mark code as used and store student in session
-        $student->markEnrollmentCodeAsUsed();
-        Session::put('enrollment_student_id', $student->id);
-
-        return redirect()->route('enrollment.documents')->with('success', 'Verification successful! You can now upload your documents.');
+{
+    // Get both clean and formatted versions of the ID
+    $cleanIdNumber = $this->cleanIdNumber($request->id_number, $request->id_type);
+    $originalIdNumber = $request->id_number;
+    
+    // For CNIC, also try the formatted version with dashes
+    $formattedIdNumber = null;
+    if ($request->id_type === 'cnic' && strlen($cleanIdNumber) === 13) {
+        $formattedIdNumber = substr($cleanIdNumber, 0, 5) . '-' . 
+                           substr($cleanIdNumber, 5, 7) . '-' . 
+                           substr($cleanIdNumber, 12, 1);
     }
+    
+    // Search for student with multiple ID format possibilities
+    $student = Student::where('id_type', $request->id_type)
+                     ->where(function($query) use ($cleanIdNumber, $formattedIdNumber, $originalIdNumber) {
+                         $query->where('id_number', $cleanIdNumber);
+                         
+                         if ($formattedIdNumber) {
+                             $query->orWhere('id_number', $formattedIdNumber);
+                         }
+                         
+                         // Also try the original input
+                         $query->orWhere('id_number', $originalIdNumber);
+                     })
+                     ->first();
+
+    if (!$student) {
+        return back()->withErrors(['id_number' => 'No student found with this ID.']);
+    }
+
+    // Check if student is eligible for enrollment
+    if (!$student->isEligibleForEnrollment()) {
+        return back()->withErrors(['general' => 'You are not eligible for enrollment at this time.']);
+    }
+
+    // Verify the code
+    if (!$student->verifyEnrollmentCode($request->verification_code)) {
+        if ($student->enrollment_code_used) {
+            return back()->withErrors(['verification_code' => 'This verification code has already been used.']);
+        } elseif ($student->isEnrollmentCodeExpired()) {
+            return back()->withErrors(['verification_code' => 'This verification code has expired. Please contact admissions for a new code.']);
+        } else {
+            return back()->withErrors(['verification_code' => 'Invalid verification code.']);
+        }
+    }
+
+    // Mark code as used and store student in session
+    $student->markEnrollmentCodeAsUsed();
+    Session::put('enrollment_student_id', $student->id);
+
+    return redirect()->route('enrollment.documents')->with('success', 'Verification successful! You can now upload your documents.');
+}
 
     /**
      * Show document upload form

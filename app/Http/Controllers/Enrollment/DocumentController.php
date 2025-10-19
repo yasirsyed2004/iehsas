@@ -207,23 +207,23 @@ class DocumentController extends Controller
     }
 
     /**
-     * Check if user can access document
-     */
-    private function canAccessDocument(EnrollmentDocument $document): bool
-    {
-        // Check if it's the student's own document
-        $studentId = Session::get('enrollment_student_id');
-        if ($studentId && $document->student_id == $studentId) {
-            return true;
-        }
-
-        // Check if it's an admin user
-        if (auth()->check()) {
-            return true;
-        }
-
-        return false;
+ * Check if user can access document
+ */
+private function canAccessDocument(EnrollmentDocument $document): bool
+{
+    // Check if it's the student's own document
+    $studentId = Session::get('enrollment_student_id');
+    if ($studentId && $document->student_id == $studentId) {
+        return true;
     }
+
+    // Check if it's an admin user (FIXED: Use admin guard)
+    if (auth('admin')->check()) {
+        return true;
+    }
+
+    return false;
+}
 
     /**
      * Generate unique stored filename

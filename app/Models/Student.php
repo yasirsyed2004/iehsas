@@ -259,6 +259,27 @@ $expiryTime = $this->enrollment_code_generated_at->copy()->addHours($expiryHours
         ];
     }
 
+
+/**
+ * Get document review status summary for admin display
+ */
+public function getDocumentsStatusAttribute(): ?array
+{
+    // If no documents uploaded, return null
+    if ($this->enrollmentDocuments()->count() === 0) {
+        return null;
+    }
+
+    $documents = $this->enrollmentDocuments;
+    
+    return [
+        'total' => $documents->count(),
+        'pending' => $documents->where('status', EnrollmentDocument::STATUS_PENDING)->count(),
+        'approved' => $documents->where('status', EnrollmentDocument::STATUS_APPROVED)->count(),
+        'rejected' => $documents->where('status', EnrollmentDocument::STATUS_REJECTED)->count(),
+    ];
+}
+
     /**
      * Mark enrollment form as submitted
      */

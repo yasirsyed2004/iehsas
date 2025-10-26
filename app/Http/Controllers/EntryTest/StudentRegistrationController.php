@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StudentRegistrationRequest;
 use App\Models\Student;
 use App\Models\EntryTest;
+use App\Models\Course;
 use Illuminate\Http\Request;
 
 class StudentRegistrationController extends Controller
@@ -23,6 +24,12 @@ class StudentRegistrationController extends Controller
                 ->with('error', 'No active entry test available.');
         }
 
+        // Get published and active courses, sorted alphabetically
+        $courses = Course::where('status', 'published')
+            ->where('is_active', true)
+            ->orderBy('title', 'asc')
+            ->get(['id', 'title', 'level']);
+
         // Pass additional data needed for the enhanced form
         $nationalities = config('nationalities');
         
@@ -32,7 +39,7 @@ class StudentRegistrationController extends Controller
             'driving_license' => 'Driving License'
         ];
 
-        return view('entry-test.register', compact('entryTest', 'nationalities', 'idTypes'));
+        return view('entry-test.register', compact('entryTest', 'nationalities', 'idTypes', 'courses'));
     }
 
     /**
@@ -42,6 +49,10 @@ class StudentRegistrationController extends Controller
     {
         // Get cleaned and validated data from Form Request
         $validatedData = $request->getCleanedData();
+
+        // Extract course IDs for later use
+        $selectedCourseIds = $validatedData['courses'];
+        unset($validatedData['courses']); // Remove from array before creating student
         
         // Check if student already exists with this ID combination
         $existingStudent = Student::where('id_type', $validatedData['id_type'])
@@ -59,12 +70,21 @@ class StudentRegistrationController extends Controller
             }
             
             // Student can retake - update their information
+            // Student can retake - update their information
             $student = $this->updateExistingStudent($existingStudent, $validatedData);
-            
+
+            // Update course selections
+            $student->selectedCourses()->sync($selectedCourseIds);
+
             $message = 'Registration updated successfully! You are allowed to retake the test.';
         } else {
             // New student - create record
             $student = $this->createNewStudent($validatedData);
+
+            // Attach selected courses
+            $student->selectedCourses()->attach($selectedCourseIds, [
+                'selected_at' => now()
+            ]);
             
             $message = 'Registration successful! Please review the test instructions.';
         }

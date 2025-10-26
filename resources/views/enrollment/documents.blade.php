@@ -43,6 +43,43 @@
             </div>
         </div>
 
+        <!-- Selected Courses Section -->
+@if($student->selectedCourses && $student->selectedCourses->count() > 0)
+<div class="max-w-4xl mx-auto mb-8">
+    <div class="glass-effect rounded-xl p-6">
+        <h2 class="text-white text-xl font-semibold mb-4">Selected Courses</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @foreach($student->selectedCourses as $course)
+                <div class="bg-white bg-opacity-5 rounded-lg p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300">
+                    <div class="flex items-center mb-2">
+                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-book text-white"></i>
+                        </div>
+                        <h3 class="text-white font-medium text-sm">{{ $course->title }}</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $course->level === 'beginner' ? 'bg-green-500' : ($course->level === 'intermediate' ? 'bg-yellow-500' : 'bg-red-500') }} text-white">
+                            {{ ucfirst($course->level) }}
+                        </span>
+                        @if($course->pivot && $course->pivot->selected_at)
+                            <span class="text-gray-300 text-xs">
+                                {{ \Carbon\Carbon::parse($course->pivot->selected_at)->format('M d, Y') }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="mt-4 p-3 bg-blue-500 bg-opacity-20 border border-blue-400 border-opacity-30 rounded-lg">
+            <p class="text-blue-200 text-sm">
+                <i class="fas fa-info-circle mr-2"></i>
+                You have selected <strong>{{ $student->selectedCourses->count() }}</strong> course(s) during registration
+            </p>
+        </div>
+    </div>
+</div>
+@endif
+
         <!-- Main Content -->
         <div class="max-w-4xl mx-auto" x-data="documentUpload">
             <!-- Progress Bar -->

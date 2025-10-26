@@ -87,7 +87,7 @@ class EnrollmentManagementController extends Controller
      */
     public function show(Student $student)
     {
-        $student->load(['latestAttempt', 'enrollmentDocuments']);
+        $student->load(['latestAttempt', 'enrollmentDocuments', 'selectedCourses']);
         
         return view('admin.enrollments.show', compact('student'));
     }

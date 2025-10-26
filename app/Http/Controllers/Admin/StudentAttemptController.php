@@ -58,7 +58,7 @@ class StudentAttemptController extends Controller
 
     public function show(EntryTestAttempt $attempt)
     {
-        $attempt->load(['entryTest', 'student', 'answers.question']);
+        $attempt->load(['entryTest', 'student.selectedCourses', 'answers.question']);
         
         return view('admin.student-attempts.show', compact('attempt'));
     }

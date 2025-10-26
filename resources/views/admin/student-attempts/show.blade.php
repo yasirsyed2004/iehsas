@@ -158,6 +158,13 @@
             font-size: 1.5rem;
             font-weight: bold;
         }
+            .hover-shadow {
+            transition: all 0.3s ease;
+        }
+        .hover-shadow:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -318,6 +325,51 @@
                         </div>
                     </div>
                 </div>
+
+                @if($attempt->student->selectedCourses && $attempt->student->selectedCourses->count() > 0)
+<div class="card mb-4">
+    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+        <h5 class="mb-0 text-white">
+            <i class="fas fa-graduation-cap me-2"></i>Selected Courses
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            @foreach($attempt->student->selectedCourses as $course)
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center p-3 border rounded hover-shadow">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-book text-primary fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ $course->title }}</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-{{ $course->level === 'beginner' ? 'success' : ($course->level === 'intermediate' ? 'warning' : 'danger') }}">
+                                    {{ ucfirst($course->level) }}
+                                </span>
+                                @if($course->pivot && $course->pivot->selected_at)
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ \Carbon\Carbon::parse($course->pivot->selected_at)->format('M d, Y') }}
+                                    </small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="mt-3 pt-3 border-top">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Total {{ $attempt->student->selectedCourses->count() }} course(s) selected during registration
+            </small>
+        </div>
+    </div>
+</div>
+@endif
 
                 <!-- Test Information -->
                 <div class="info-card">

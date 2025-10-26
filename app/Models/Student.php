@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Carbon\Carbon;
 
 class Student extends Model
@@ -73,6 +74,12 @@ class Student extends Model
         return $this->hasOne(EntryTestAttempt::class)->latestOfMany();
     }
 
+    public function selectedCourses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'student_course_selections')
+            ->withTimestamps()
+            ->withPivot('selected_at');
+    }
     // PHASE 2 ENROLLMENT METHODS
 
     /**

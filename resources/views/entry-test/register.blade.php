@@ -47,6 +47,144 @@
             font-family: 'Courier New', monospace;
             letter-spacing: 1px;
         }
+
+        /* Course Selection Styles */
+.course-selector {
+    position: relative;
+}
+
+.course-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.course-dropdown-trigger:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.course-dropdown-trigger.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.course-dropdown-trigger .placeholder {
+    color: #6b7280;
+    flex: 1;
+}
+
+.course-dropdown-trigger .placeholder.has-selection {
+    color: #1f2937;
+}
+
+.course-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 400px;
+    overflow: hidden;
+}
+
+.course-dropdown-header {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.course-dropdown-body {
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.course-option {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 0;
+}
+
+.course-option:hover {
+    background-color: #f3f4f6;
+}
+
+.course-option input[type="checkbox"] {
+    margin-right: 12px;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.course-option .course-title {
+    flex: 1;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.course-option .course-level {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+}
+
+.selected-courses {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+}
+
+.selected-courses-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 8px;
+}
+
+.selected-courses-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.course-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    gap: 8px;
+}
+
+.course-tag-remove {
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    transition: background-color 0.2s ease;
+}
+
+.course-tag-remove:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
     </style>
 </head>
 <body>
@@ -134,6 +272,59 @@
                                 </div>
                             </div>
                         @endif
+
+                        <!-- Course Selection Field - Full Width, First Field -->
+<div class="mb-6">
+    <label class="block text-sm font-bold text-gray-700 mb-2">
+        <i class="fas fa-graduation-cap mr-1"></i>Choose Your Course(s) <span class="text-red-500">*</span>
+    </label>
+    
+    <div class="course-selector">
+        <!-- Dropdown Trigger Button -->
+        <div class="course-dropdown-trigger" id="courseDropdownTrigger">
+            <span class="placeholder" id="coursePlaceholder">Select one or more courses</span>
+            <i class="fas fa-chevron-down ms-auto"></i>
+        </div>
+        
+        <!-- Dropdown Menu with Checkboxes -->
+        <div class="course-dropdown-menu" id="courseDropdownMenu" style="display: none;">
+            <div class="course-dropdown-header">
+                <input type="text" class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" id="courseSearch" placeholder="Search courses...">
+            </div>
+            <div class="course-dropdown-body" id="courseDropdownBody">
+                @forelse($courses as $course)
+                    <label class="course-option">
+                        <input type="checkbox" name="courses[]" value="{{ $course->id }}" class="course-checkbox" 
+                               data-title="{{ $course->title }}" 
+                               data-level="{{ ucfirst($course->level) }}"
+                               {{ in_array($course->id, old('courses', [])) ? 'checked' : '' }}>
+                        <span class="course-title">{{ $course->title }}</span>
+                        <span class="course-level badge bg-{{ $course->level === 'beginner' ? 'success' : ($course->level === 'intermediate' ? 'warning' : 'danger') }}">
+                            {{ ucfirst($course->level) }}
+                        </span>
+                    </label>
+                @empty
+                    <div class="text-center text-gray-500 py-3">
+                        <i class="fas fa-info-circle mr-2"></i>No courses available at the moment.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+        
+        <!-- Selected Courses Display -->
+        <div class="selected-courses" id="selectedCoursesContainer" style="display: none;">
+            <div class="selected-courses-title">Selected Courses:</div>
+            <div class="selected-courses-tags" id="selectedCoursesTags"></div>
+        </div>
+    </div>
+    
+    @error('courses')
+        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+    @enderror
+    @error('courses.*')
+        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+    @enderror
+</div>
 
                         <div class="grid md:grid-cols-2 gap-6">
                             <!-- Full Name -->
@@ -548,6 +739,88 @@
                 });
             }, 100);
         });
+
+        // Course Selection Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const trigger = document.getElementById('courseDropdownTrigger');
+    const menu = document.getElementById('courseDropdownMenu');
+    const placeholder = document.getElementById('coursePlaceholder');
+    const checkboxes = document.querySelectorAll('.course-checkbox');
+    const selectedContainer = document.getElementById('selectedCoursesContainer');
+    const selectedTags = document.getElementById('selectedCoursesTags');
+    const searchInput = document.getElementById('courseSearch');
+    const courseOptions = document.querySelectorAll('.course-option');
+    
+    // Toggle dropdown
+    if (trigger) {
+        trigger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = menu.style.display === 'block';
+            menu.style.display = isOpen ? 'none' : 'block';
+            trigger.classList.toggle('active', !isOpen);
+        });
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (trigger && !trigger.contains(e.target) && !menu.contains(e.target)) {
+            menu.style.display = 'none';
+            trigger.classList.remove('active');
+        }
+    });
+    
+    // Search functionality
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            courseOptions.forEach(option => {
+                const title = option.querySelector('.course-title').textContent.toLowerCase();
+                option.style.display = title.includes(searchTerm) ? 'flex' : 'none';
+            });
+        });
+    }
+    
+    // Handle checkbox changes
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCourses);
+    });
+    
+    function updateSelectedCourses() {
+        const selected = Array.from(checkboxes).filter(cb => cb.checked);
+        
+        if (selected.length > 0) {
+            placeholder.textContent = `${selected.length} course${selected.length > 1 ? 's' : ''} selected`;
+            placeholder.classList.add('has-selection');
+            selectedContainer.style.display = 'block';
+            
+            // Create tags
+            selectedTags.innerHTML = '';
+            selected.forEach(checkbox => {
+                const tag = document.createElement('div');
+                tag.className = 'course-tag';
+                tag.innerHTML = `
+                    <span>${checkbox.dataset.title}</span>
+                    <span class="course-tag-remove" data-id="${checkbox.value}">×</span>
+                `;
+                selectedTags.appendChild(tag);
+                
+                // Add remove handler
+                tag.querySelector('.course-tag-remove').addEventListener('click', function() {
+                    checkbox.checked = false;
+                    updateSelectedCourses();
+                });
+            });
+        } else {
+            placeholder.textContent = 'Select one or more courses';
+            placeholder.classList.remove('has-selection');
+            selectedContainer.style.display = 'none';
+            selectedTags.innerHTML = '';
+        }
+    }
+    
+    // Initialize on page load (for old input)
+    updateSelectedCourses();
+});
     </script>
 </body>
 </html>

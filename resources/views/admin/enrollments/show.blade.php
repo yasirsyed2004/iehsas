@@ -7,8 +7,20 @@
     <title>Student Enrollment Details - {{ $student->full_name }} - Admin LMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
@@ -17,31 +29,315 @@
             left: 0;
             width: 250px;
             z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
         }
+        
         .main-content {
             margin-left: 250px;
-            padding: 20px;
-            background-color: #f8f9fa;
+            padding: 30px;
             min-height: 100vh;
         }
+        
         .sidebar .nav-link {
             color: #ecf0f1;
-            border-radius: 5px;
-            margin: 2px 10px;
-            transition: all 0.3s;
+            border-radius: 8px;
+            margin: 3px 10px;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
+        
         .sidebar .nav-link:hover {
-            background-color: rgba(255,255,255,0.1);
+            background-color: rgba(255,255,255,0.15);
             color: white;
+            transform: translateX(5px);
         }
+        
         .sidebar .nav-link.active {
-            background-color: #3498db;
+            background: var(--primary-gradient);
             color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
+        
         .user-info {
             color: #ecf0f1;
-            padding: 15px;
+            padding: 25px 15px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Enhanced Cards */
+        .card-modern {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: none;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: 25px;
+        }
+
+        .card-modern:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.12);
+        }
+
+        .card-header-gradient {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 30px;
+            border: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Status Cards */
+        .status-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 35px rgba(0,0,0,0.12);
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .info-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        /* Course Cards */
+        .course-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .course-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--primary-gradient);
+            transition: width 0.3s ease;
+        }
+
+        .course-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .course-card:hover::before {
+            width: 100%;
+            opacity: 0.05;
+        }
+
+        .course-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--primary-gradient);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Document Cards */
+        .document-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .document-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+        }
+
+        /* Buttons */
+        .btn-modern {
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary-gradient {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary-modern {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary-modern:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Entry Test History */
+        .test-attempt-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 12px;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .test-attempt-item:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transform: translateX(5px);
+        }
+
+        /* Header */
+        .page-header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        /* Level Badges */
+        .level-badge-beginner {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .level-badge-intermediate {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .level-badge-advanced {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* Modal Enhancement */
+        .modal-modern .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-modern .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 20px 30px;
         }
     </style>
 </head>
@@ -56,8 +352,8 @@
                     <i class="fas fa-user-circle fa-3x"></i>
                 @endif
             </div>
-            <h6>{{ Auth::guard('admin')->check() ? Auth::guard('admin')->user()->name : 'Admin' }}</h6>
-            <small>{{ Auth::guard('admin')->check() ? ucfirst(str_replace('_', ' ', Auth::guard('admin')->user()->role ?? 'admin')) : 'Administrator' }}</small>
+            <h6 class="mb-1">{{ Auth::guard('admin')->check() ? Auth::guard('admin')->user()->name : 'Admin' }}</h6>
+            <small style="opacity: 0.8;">{{ Auth::guard('admin')->check() ? ucfirst(str_replace('_', ' ', Auth::guard('admin')->user()->role ?? 'admin')) : 'Administrator' }}</small>
         </div>
         
         <ul class="nav flex-column p-3">
@@ -116,28 +412,25 @@
 
     <!-- Main Content -->
     <div class="main-content">
-<div class="container mx-auto px-4 py-6">
         <!-- Header -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center">
+        <div class="page-header animate-fade-in">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900">
-                        Enrollment Details: {{ $student->full_name }}
+                    <h1 class="page-title">
+                        <i class="fas fa-user-graduate me-2"></i>{{ $student->full_name }}
                     </h1>
-                    <p class="mt-2 text-gray-600">Review student information and documents</p>
+                    <p class="text-muted mb-0">Review student information and documents</p>
                 </div>
-                <div class="flex space-x-3">
-                    <a href="{{ route('admin.enrollments.index') }}" 
-                       class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
-                        ← Back to Enrollments
+                <div class="d-flex gap-2">
+                    <a href="{{ route('admin.enrollments.index') }}" class="btn btn-secondary-modern btn-modern">
+                        <i class="fas fa-arrow-left me-2"></i>Back
                     </a>
                     @if($student->isEligibleForEnrollment())
-                        <form method="POST" action="{{ route('admin.enrollments.send-form', $student) }}" class="inline">
+                        <form method="POST" action="{{ route('admin.enrollments.send-form', $student) }}" class="d-inline">
                             @csrf
-                            <button type="submit" 
-                                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                            <button type="submit" class="btn btn-primary-gradient btn-modern"
                                     onclick="return confirm('Send enrollment form to {{ $student->email }}?')">
-                                Send Enrollment Form
+                                <i class="fas fa-paper-plane me-2"></i>Send Form
                             </button>
                         </form>
                     @endif
@@ -146,240 +439,303 @@
         </div>
 
         <!-- Status Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="row g-4 mb-4 animate-fade-in">
             <!-- Enrollment Status -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Enrollment Status</h3>
-                <div class="flex items-center">
+            <div class="col-md-4">
+                <div class="status-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 50px; height: 50px; background: var(--primary-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-clipboard-check text-white fs-4"></i>
+                        </div>
+                        <h5 class="ms-3 mb-0 fw-bold">Enrollment Status</h5>
+                    </div>
                     @php
                         $statusColors = [
-                            'not_eligible' => 'bg-gray-100 text-gray-800',
-                            'eligible' => 'bg-blue-100 text-blue-800',
-                            'code_sent' => 'bg-yellow-100 text-yellow-800',
-                            'code_expired' => 'bg-red-100 text-red-800',
-                            'in_progress' => 'bg-orange-100 text-orange-800',
-                            'completed' => 'bg-green-100 text-green-800',
+                            'not_eligible' => 'bg-secondary',
+                            'eligible' => 'bg-primary',
+                            'code_sent' => 'bg-warning',
+                            'code_expired' => 'bg-danger',
+                            'in_progress' => 'bg-info',
+                            'completed' => 'bg-success',
                         ];
-                        $statusColor = $statusColors[$student->enrollment_status] ?? 'bg-gray-100 text-gray-800';
+                        $statusColor = $statusColors[$student->enrollment_status] ?? 'bg-secondary';
                     @endphp
-                    <span class="px-3 py-1 rounded-full text-sm font-medium {{ $statusColor }}">
+                    <span class="status-badge {{ $statusColor }} text-white">
+                        <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
                         {{ $student->enrollment_status_label }}
                     </span>
+                    @if($student->enrollment_code_generated_at)
+                        <p class="text-muted small mb-0 mt-3">
+                            <i class="far fa-calendar-alt me-1"></i>
+                            Code sent: {{ $student->enrollment_code_generated_at->format('M j, Y g:i A') }}
+                        </p>
+                    @endif
                 </div>
-                @if($student->enrollment_code_generated_at)
-                    <p class="text-sm text-gray-600 mt-2">
-                        Code sent: {{ $student->enrollment_code_generated_at->format('M j, Y g:i A') }}
-                    </p>
-                @endif
             </div>
 
             <!-- Entry Test Status -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Entry Test</h3>
-                @if($student->latestAttempt)
-                    <div class="flex items-center">
+            <div class="col-md-4">
+                <div class="status-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 50px; height: 50px; background: var(--success-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-file-alt text-white fs-4"></i>
+                        </div>
+                        <h5 class="ms-3 mb-0 fw-bold">Entry Test</h5>
+                    </div>
+                    @if($student->latestAttempt)
                         @if($student->hasPassedEntryTest())
-                            <span class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <span class="status-badge bg-success text-white">
+                                <i class="fas fa-check-circle"></i>
                                 Passed ({{ $student->latestAttempt->percentage }}%)
                             </span>
                         @else
-                            <span class="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            <span class="status-badge bg-danger text-white">
+                                <i class="fas fa-times-circle"></i>
                                 Failed ({{ $student->latestAttempt->percentage }}%)
                             </span>
                         @endif
-                    </div>
-                    <p class="text-sm text-gray-600 mt-2">
-                        Completed: {{ $student->latestAttempt->created_at->format('M j, Y') }}
-                    </p>
-                @else
-                    <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                        Not Attempted
-                    </span>
-                @endif
+                        <p class="text-muted small mb-0 mt-3">
+                            <i class="far fa-calendar-alt me-1"></i>
+                            Completed: {{ $student->latestAttempt->created_at->format('M j, Y') }}
+                        </p>
+                    @else
+                        <span class="status-badge bg-secondary text-white">
+                            <i class="fas fa-minus-circle"></i>
+                            Not Attempted
+                        </span>
+                    @endif
+                </div>
             </div>
 
             <!-- Documents Status -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Documents</h3>
-                @if($student->enrollmentDocuments->count() > 0)
-                    <div class="space-y-2">
+            <div class="col-md-4">
+                <div class="status-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 50px; height: 50px; background: var(--warning-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-folder-open text-white fs-4"></i>
+                        </div>
+                        <h5 class="ms-3 mb-0 fw-bold">Documents</h5>
+                    </div>
+                    @if($student->enrollmentDocuments->count() > 0)
                         @php $docStatus = $student->documents_status; @endphp
-                        <div class="flex flex-wrap gap-2">
-                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                                Approved: {{ $docStatus['approved'] ?? 0 }}
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="badge bg-success">
+                                <i class="fas fa-check me-1"></i>{{ $docStatus['approved'] ?? 0 }}
                             </span>
-                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                                Pending: {{ $docStatus['pending'] ?? 0 }}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-clock me-1"></i>{{ $docStatus['pending'] ?? 0 }}
                             </span>
-                            <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
-                                Rejected: {{ $docStatus['rejected'] ?? 0 }}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times me-1"></i>{{ $docStatus['rejected'] ?? 0 }}
                             </span>
                         </div>
-                        <p class="text-sm text-gray-600">
+                        <p class="text-muted small mb-0 mt-3">
                             Total: {{ $docStatus['total'] ?? 0 }} documents
                         </p>
-                    </div>
-                @else
-                    <span class="text-gray-400">No documents submitted</span>
-                @endif
-            </div>
-        </div>
-
-        <!-- Student Information -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Personal Information -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Personal Information</h3>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Full Name</label>
-                            <p class="text-gray-900">{{ $student->full_name }}</p>
-                        </div>
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Father's Name</label>
-                            <p class="text-gray-900">{{ $student->father_name ?? 'N/A' }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Email</label>
-                            <p class="text-gray-900">{{ $student->email }}</p>
-                        </div>
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Phone</label>
-                            <p class="text-gray-900">{{ $student->contact_number }}</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Date of Birth</label>
-                            <p class="text-gray-900">{{ $student->date_of_birth ? $student->date_of_birth->format('M j, Y') : 'N/A' }}</p>
-                        </div>
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Gender</label>
-                            <p class="text-gray-900">{{ ucfirst($student->gender) }}</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">{{ ucfirst($student->id_type) }}</label>
-                            <p class="text-gray-900">{{ $student->formatted_id }}</p>
-                        </div>
-                        <div>
-                            <label class="text-sm font-medium text-gray-500">Nationality</label>
-                            <p class="text-gray-900">{{ $student->nationality ?? 'N/A' }}</p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Qualification</label>
-                        <p class="text-gray-900">{{ $student->qualification }}</p>
-                    </div>
-
-                    @if($student->home_address)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Address</label>
-                        <p class="text-gray-900">{{ $student->home_address }}</p>
-                    </div>
+                    @else
+                        <span class="text-muted">No documents submitted</span>
                     @endif
                 </div>
             </div>
+        </div>
 
-            <!-- Entry Test Details -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Entry Test History</h3>
+        <!-- Personal Information & Entry Test -->
+        <div class="row g-4 mb-4">
+            <!-- Personal Information -->
+            <div class="col-lg-6">
+                <div class="card-modern">
+                    <div class="card-header-gradient">
+                        <i class="fas fa-user me-2"></i>Personal Information
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Full Name</div>
+                                <div class="info-value">{{ $student->full_name }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Father's Name</div>
+                                <div class="info-value">{{ $student->father_name ?? 'N/A' }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Email</div>
+                                <div class="info-value text-truncate">{{ $student->email }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Phone</div>
+                                <div class="info-value">{{ $student->contact_number }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Date of Birth</div>
+                                <div class="info-value">{{ $student->date_of_birth ? $student->date_of_birth->format('M j, Y') : 'N/A' }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Gender</div>
+                                <div class="info-value">{{ ucfirst($student->gender) }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">{{ ucfirst($student->id_type) }}</div>
+                                <div class="info-value">{{ $student->formatted_id }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Nationality</div>
+                                <div class="info-value">{{ $student->nationality ?? 'N/A' }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Qualification</div>
+                                <div class="info-value">{{ $student->qualification }}</div>
+                            </div>
+                        </div>
+                        @if($student->home_address)
+                        <div class="info-item mt-3">
+                            <div class="info-label">Home Address</div>
+                            <div class="info-value">{{ $student->home_address }}</div>
+                        </div>
+                        @endif
+                    </div>
                 </div>
-                <div class="px-6 py-4">
-                    @if($student->entryTestAttempts->count() > 0)
-                        <div class="space-y-4">
+            </div>
+
+            <!-- Entry Test History -->
+            <div class="col-lg-6">
+                <div class="card-modern">
+                    <div class="card-header-gradient">
+                        <i class="fas fa-history me-2"></i>Entry Test History
+                    </div>
+                    <div class="card-body p-4">
+                        @if($student->entryTestAttempts->count() > 0)
                             @foreach($student->entryTestAttempts->take(5) as $attempt)
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div>
-                                        <div class="font-medium">
-                                            {{ $attempt->percentage }}%
+                                <div class="test-attempt-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 fw-bold">{{ $attempt->percentage }}%</h6>
+                                            <small class="text-muted">
+                                                <i class="far fa-clock me-1"></i>
+                                                {{ $attempt->created_at->format('M j, Y g:i A') }}
+                                            </small>
+                                        </div>
+                                        <div>
                                             @if($attempt->percentage >= 60)
-                                                <span class="text-green-600 text-sm">(Passed)</span>
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i>Passed
+                                                </span>
                                             @else
-                                                <span class="text-red-600 text-sm">(Failed)</span>
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle me-1"></i>Failed
+                                                </span>
                                             @endif
+                                            <span class="badge bg-primary ms-1">{{ $attempt->status }}</span>
                                         </div>
-                                        <div class="text-sm text-gray-600">
-                                            {{ $attempt->created_at->format('M j, Y g:i A') }}
-                                        </div>
-                                    </div>
-                                    <div class="text-sm text-gray-500">
-                                        {{ $attempt->status }}
                                     </div>
                                 </div>
                             @endforeach
-                        </div>
-                    @else
-                        <p class="text-gray-500">No entry test attempts found.</p>
-                    @endif
+                        @else
+                            <div class="text-center py-5">
+                                <i class="fas fa-inbox text-muted fa-3x mb-3"></i>
+                                <p class="text-muted">No entry test attempts found.</p>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Selected Courses -->
+        @if($student->selectedCourses && $student->selectedCourses->count() > 0)
+        <div class="card-modern animate-fade-in">
+            <div class="card-header-gradient">
+                <i class="fas fa-graduation-cap me-2"></i>Selected Courses
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    @foreach($student->selectedCourses as $course)
+                        <div class="col-md-6">
+                            <div class="course-card">
+                                <div class="d-flex align-items-start">
+                                    <div class="course-icon me-3">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="fw-bold mb-2">{{ $course->title }}</h5>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="badge level-badge-{{ $course->level }}">
+                                                <i class="fas fa-layer-group me-1"></i>
+                                                {{ ucfirst($course->level) }}
+                                            </span>
+                                            @if($course->pivot && $course->pivot->selected_at)
+                                                <small class="text-muted">
+                                                    <i class="far fa-calendar-check me-1"></i>
+                                                    {{ \Carbon\Carbon::parse($course->pivot->selected_at)->format('M d, Y') }}
+                                                </small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="alert alert-info border-0 mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Total <strong>{{ $student->selectedCourses->count() }}</strong> course(s) selected during registration
+                </div>
+            </div>
+        </div>
+        @endif
+
         <!-- Documents Section -->
         @if($student->enrollmentDocuments->count() > 0)
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Submitted Documents</h3>
+        <div class="card-modern animate-fade-in mt-4">
+            <div class="card-header-gradient">
+                <i class="fas fa-file-alt me-2"></i>Submitted Documents
             </div>
-            <div class="px-6 py-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="card-body p-4">
+                <div class="row g-4">
                     @foreach($student->enrollmentDocuments as $document)
-                        <div class="border rounded-lg p-4">
-                            <div class="flex items-start justify-between mb-3">
-                                <div>
-                                    <h4 class="font-medium text-gray-900">{{ $document->document_type_label }}</h4>
-                                    <p class="text-sm text-gray-600">{{ $document->original_filename }}</p>
-                                    <p class="text-xs text-gray-500">{{ $document->formatted_file_size }} • Uploaded {{ $document->uploaded_at->format('M j, Y') }}</p>
+                        <div class="col-md-6">
+                            <div class="document-card">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="fw-bold mb-1">{{ $document->document_type_label }}</h6>
+                                        <p class="text-muted small mb-1">{{ $document->original_filename }}</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-file me-1"></i>{{ $document->formatted_file_size }} 
+                                            <i class="fas fa-calendar ms-2 me-1"></i>{{ $document->uploaded_at->format('M j, Y') }}
+                                        </small>
+                                    </div>
+                                    <span class="badge {{ $document->status === 'approved' ? 'bg-success' : ($document->status === 'rejected' ? 'bg-danger' : 'bg-warning') }}">
+                                        {{ $document->status_label }}
+                                    </span>
                                 </div>
-                                <span class="px-2 py-1 rounded text-xs font-medium {{ $document->status_color }}">
-                                    {{ $document->status_label }}
-                                </span>
-                            </div>
 
-                            @if($document->admin_comments)
-                                <div class="mb-3 p-2 bg-gray-50 rounded text-sm">
-                                    <strong>Admin Comments:</strong> {{ $document->admin_comments }}
-                                </div>
-                            @endif
-
-                            <div class="flex gap-2">
-                                <a href="{{ $document->file_url }}" 
-                                   target="_blank"
-                                   class="text-blue-600 hover:text-blue-800 text-sm">
-                                    View
-                                </a>
-                                <a href="{{ $document->download_url }}" 
-                                   class="text-green-600 hover:text-green-800 text-sm">
-                                    Download
-                                </a>
-
-                                @if($document->status === 'pending')
-                                    <form method="POST" action="{{ route('admin.enrollments.document.approve', $document) }}" class="inline">
-                                        @csrf
-                                        <button type="submit" 
-                                                class="text-green-600 hover:text-green-800 text-sm"
-                                                onclick="return confirm('Approve this document?')">
-                                            Approve
-                                        </button>
-                                    </form>
-                                    
-                                    <button onclick="openRejectModal({{ $document->id }})" 
-                                            class="text-red-600 hover:text-red-800 text-sm">
-                                        Reject
-                                    </button>
+                                @if($document->admin_comments)
+                                    <div class="alert alert-secondary border-0 py-2 px-3 small mb-3">
+                                        <strong>Admin:</strong> {{ $document->admin_comments }}
+                                    </div>
                                 @endif
+
+                                <div class="d-flex gap-2">
+                                    <a href="{{ $document->file_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </a>
+                                    <a href="{{ $document->download_url }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-download me-1"></i>Download
+                                    </a>
+
+                                    @if($document->status === 'pending')
+                                        <form method="POST" action="{{ route('admin.enrollments.document.approve', $document) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success"
+                                                    onclick="return confirm('Approve this document?')">
+                                                <i class="fas fa-check me-1"></i>Approve
+                                            </button>
+                                        </form>
+                                        
+                                        <button onclick="openRejectModal({{ $document->id }})" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times me-1"></i>Reject
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -387,68 +743,44 @@
             </div>
         </div>
         @endif
-</div>
+    </div>
 
-<!-- Reject Document Modal -->
-<div id="rejectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <form id="rejectForm" method="POST">
-                @csrf
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Reject Document</h3>
-                </div>
-                <div class="px-6 py-4">
-                    <label for="comments" class="block text-sm font-medium text-gray-700 mb-2">
-                        Reason for rejection (required)
-                    </label>
-                    <textarea name="comments" 
-                              id="comments" 
-                              rows="4" 
-                              required
-                              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Please provide specific feedback..."></textarea>
-                </div>
-                <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-                    <button type="button" 
-                            onclick="closeRejectModal()"
-                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
-                        Cancel
-                    </button>
-                    <button type="submit" 
-                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                        Reject Document
-                    </button>
-                </div>
-            </form>
+    <!-- Reject Document Modal -->
+    <div class="modal fade modal-modern" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="rejectForm" method="POST">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-times-circle me-2"></i>Reject Document
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="comments" class="form-label fw-bold">Reason for rejection *</label>
+                        <textarea name="comments" id="comments" rows="4" required
+                                  class="form-control" placeholder="Please provide specific feedback..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary-modern btn-modern" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-modern">
+                            <i class="fas fa-times me-2"></i>Reject Document
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-function openRejectModal(documentId) {
-    const modal = document.getElementById('rejectModal');
-    const form = document.getElementById('rejectForm');
-    form.action = `/admin/enrollments/document/${documentId}/reject`;
-    modal.classList.remove('hidden');
-}
-
-function closeRejectModal() {
-    const modal = document.getElementById('rejectModal');
-    modal.classList.add('hidden');
-    document.getElementById('comments').value = '';
-}
-
-// Close modal when clicking outside
-document.getElementById('rejectModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeRejectModal();
-    }
-});
-</script>
-    </div>
-
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openRejectModal(documentId) {
+            const form = document.getElementById('rejectForm');
+            form.action = `/admin/enrollments/document/${documentId}/reject`;
+            const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+            modal.show();
+        }
+    </script>
 </body>
 </html>

@@ -80,26 +80,30 @@ class EnrollmentController extends Controller
     /**
      * Show document upload form
      */
-    public function showDocumentForm()
-    {
-        $studentId = Session::get('enrollment_student_id');
-        
-        if (!$studentId) {
-            return redirect()->route('enrollment.verify')->withErrors(['general' => 'Please verify your enrollment code first.']);
-        }
-
-        $student = Student::findOrFail($studentId);
-        
-        // Check if enrollment is already submitted
-        if ($student->enrollment_form_submitted) {
-            return redirect()->route('enrollment.success')->with('info', 'Your enrollment has already been submitted.');
-        }
-
-        $documents = $student->enrollmentDocuments()->get()->keyBy('document_type');
-        $documentTypes = EnrollmentDocument::getDocumentTypes();
-
-        return view('enrollment.documents', compact('student', 'documents', 'documentTypes'));
+    /**
+ * Show document upload form
+ */
+public function showDocumentForm()
+{
+    $studentId = Session::get('enrollment_student_id');
+    
+    if (!$studentId) {
+        return redirect()->route('enrollment.verify')->withErrors(['general' => 'Please verify your enrollment code first.']);
     }
+
+    // Load student with selected courses
+    $student = Student::with('selectedCourses')->findOrFail($studentId);
+    
+    // Check if enrollment is already submitted
+    if ($student->enrollment_form_submitted) {
+        return redirect()->route('enrollment.success')->with('info', 'Your enrollment has already been submitted.');
+    }
+
+    $documents = $student->enrollmentDocuments()->get()->keyBy('document_type');
+    $documentTypes = EnrollmentDocument::getDocumentTypes();
+
+    return view('enrollment.documents', compact('student', 'documents', 'documentTypes'));
+}
 
     /**
      * Submit enrollment form

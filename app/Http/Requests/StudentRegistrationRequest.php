@@ -23,6 +23,9 @@ class StudentRegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // NEW: Course Selection Validation
+            'courses' => 'required|array|min:1',
+            'courses.*' => 'exists:courses,id',
             // Basic Information
             'full_name' => 'required|string|max:255|regex:/^[a-zA-Z\s]+$/',
             'father_name' => 'required|string|max:255|regex:/^[a-zA-Z\s]+$/',
@@ -164,6 +167,12 @@ class StudentRegistrationRequest extends FormRequest
     public function messages(): array
     {
         return [
+            // NEW: Course validation messages
+            'courses.required' => 'Please select at least one course.',
+            'courses.array' => 'Invalid course selection format.',
+            'courses.min' => 'Please select at least one course.',
+            'courses.*.exists' => 'One or more selected courses are invalid.',
+
             // Name validations
             'full_name.required' => 'Full name is required.',
             'full_name.regex' => 'Full name can only contain letters and spaces.',
@@ -202,6 +211,7 @@ class StudentRegistrationRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'courses' => 'course selection',
             'full_name' => 'full name',
             'father_name' => 'father\'s name',
             'contact_number' => 'contact number',

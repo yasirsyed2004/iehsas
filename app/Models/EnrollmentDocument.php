@@ -11,6 +11,7 @@ class EnrollmentDocument extends Model
     protected $fillable = [
         'student_id',
         'document_type',
+        'sub_type',  // ADD THIS
         'original_filename',
         'stored_filename',
         'file_path',
@@ -40,6 +41,29 @@ class EnrollmentDocument extends Model
     const STATUS_APPROVED = 'approved';
     const STATUS_REJECTED = 'rejected';
 
+     // ADD: Sub-types for Identity Documents
+    const SUBTYPE_IDENTITY = [
+        'cnic_front' => 'CNIC Front Side',
+        'cnic_back' => 'CNIC Back Side',
+        'passport' => 'Passport',
+        'form_b' => 'Form-B'
+    ];
+
+    // ADD: Sub-types for Educational Certificates
+    const SUBTYPE_EDUCATION = [
+        'matric' => 'Matriculation / O-Levels',
+        'intermediate' => 'Intermediate / A-Levels / FA / FSc',
+        'bachelors' => 'Bachelor\'s Degree',
+        'masters' => 'Master\'s Degree',
+        'other' => 'Other Certificate'
+    ];
+
+    // ADD: Sub-types for CV/Resume
+    const SUBTYPE_CV = [
+        'cv' => 'CV / Resume',
+        'experience_letter' => 'Experience Letter',
+        'certificate' => 'Professional Certificate'
+    ];
     /**
      * Get the student that owns the document
      */
@@ -62,12 +86,40 @@ class EnrollmentDocument extends Model
     public function getDocumentTypeLabelAttribute(): string
     {
         return match($this->document_type) {
-            self::TYPE_IDENTITY => 'Identity Document (CNIC/Passport/Form-B)',
-            self::TYPE_EDUCATION => 'Educational Certificates',
-            self::TYPE_CV => 'CV/Resume',
+            self::TYPE_IDENTITY => 'Identity Document',
+            self::TYPE_EDUCATION => 'Educational Certificate',
+            self::TYPE_CV => 'CV/Resume & Experience',
             self::TYPE_PHOTO => 'Recent Photograph',
             default => 'Unknown Document Type'
         };
+    }
+
+    /**
+     * ADD: Get sub-type label
+     */
+    public function getSubTypeLabelAttribute(): string
+    {
+        if (!$this->sub_type) {
+            return '';
+        }
+
+        return match($this->document_type) {
+            self::TYPE_IDENTITY => self::SUBTYPE_IDENTITY[$this->sub_type] ?? $this->sub_type,
+            self::TYPE_EDUCATION => self::SUBTYPE_EDUCATION[$this->sub_type] ?? $this->sub_type,
+            self::TYPE_CV => self::SUBTYPE_CV[$this->sub_type] ?? $this->sub_type,
+            default => $this->sub_type
+        };
+    }
+
+    /**
+     * ADD: Get full document label with sub-type
+     */
+    public function getFullDocumentLabelAttribute(): string
+    {
+        if ($this->sub_type) {
+            return $this->document_type_label . ' - ' . $this->sub_type_label;
+        }
+        return $this->document_type_label;
     }
 
     /**
@@ -175,9 +227,9 @@ class EnrollmentDocument extends Model
     {
         return [
             self::TYPE_IDENTITY => 'Identity Document (CNIC/Passport/Form-B)',
-            self::TYPE_EDUCATION => 'Educational Certificates',
-            self::TYPE_CV => 'CV/Resume',
             self::TYPE_PHOTO => 'Recent Photograph',
+            self::TYPE_EDUCATION => 'Educational Certificates',
+            self::TYPE_CV => 'CV/Resume & Experience',
         ];
     }
 
@@ -207,5 +259,13 @@ class EnrollmentDocument extends Model
     public function scopeDocumentType($query, $type)
     {
         return $query->where('document_type', $type);
+    }
+    
+    /**
+     * ADD: Scope for filtering by sub-type
+     */
+    public function scopeSubType($query, $subType)
+    {
+        return $query->where('sub_type', $subType);
     }
 }

@@ -18,84 +18,90 @@ class DocumentController extends Controller
      * Upload a document
      */
     public function upload(DocumentUploadRequest $request)
-    {
-        $studentId = Session::get('enrollment_student_id');
-        
-        if (!$studentId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Session expired. Please verify your enrollment code again.'
-            ], 401);
-        }
-
-        $student = Student::findOrFail($studentId);
-        
-        if ($student->enrollment_form_submitted) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Enrollment has already been submitted.'
-            ], 400);
-        }
-
-        $file = $request->file('document');
-        $documentType = $request->document_type;
-
-        try {
-            // Generate unique filename
-            $originalName = $file->getClientOriginalName();
-            $extension = $file->getClientOriginalExtension();
-            $storedName = $this->generateStoredFilename($student, $documentType, $extension);
-            
-            // Create directory structure
-            $directory = $this->getStudentDirectory($student);
-            $filePath = $directory . '/' . $storedName;
-
-            // Store file
-            $file->storeAs('', $filePath, 'enrollment');
-
-            // Delete existing document of same type
-            $existingDocument = $student->enrollmentDocuments()
-                                      ->where('document_type', $documentType)
-                                      ->first();
-            
-            if ($existingDocument) {
-                $existingDocument->deleteFile();
-                $existingDocument->delete();
-            }
-
-            // Create document record
-            $document = EnrollmentDocument::create([
-                'student_id' => $student->id,
-                'document_type' => $documentType,
-                'original_filename' => $originalName,
-                'stored_filename' => $storedName,
-                'file_path' => $filePath,
-                'file_size' => $file->getSize(),
-                'mime_type' => $file->getMimeType(),
-                'status' => EnrollmentDocument::STATUS_PENDING,
-                'uploaded_at' => now(),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Document uploaded successfully.',
-                'document' => [
-                    'id' => $document->id,
-                    'type' => $document->document_type,
-                    'filename' => $document->original_filename,
-                    'size' => $document->formatted_file_size,
-                    'status' => $document->status_label,
-                    'view_url' => $document->file_url,
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload document: ' . $e->getMessage()
-            ], 500);
-        }
+{
+    $studentId = Session::get('enrollment_student_id');
+    
+    if (!$studentId) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Session expired. Please verify your enrollment code again.'
+        ], 401);
     }
+
+    $student = Student::findOrFail($studentId);
+    
+    if ($student->enrollment_form_submitted) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Enrollment has already been submitted.'
+        ], 400);
+    }
+
+    $file = $request->file('document');
+    $documentType = $request->document_type;
+    $subType = $request->sub_type; // NEW: Get sub-type
+
+    try {
+        // Generate unique filename
+        $originalName = $file->getClientOriginalName();
+        $extension = $file->getClientOriginalExtension();
+        $storedName = $this->generateStoredFilename($student, $documentType, $subType, $extension);
+        
+        // Create directory structure
+        $directory = $this->getStudentDirectory($student);
+        $filePath = $directory . '/' . $storedName;
+
+        // Store file
+        $file->storeAs('', $filePath, 'enrollment');
+
+        // Delete existing document of same type AND sub-type
+        $existingDocument = $student->enrollmentDocuments()
+                                  ->where('document_type', $documentType)
+                                  ->where('sub_type', $subType) // NEW: Check sub-type too
+                                  ->first();
+        
+        if ($existingDocument) {
+            $existingDocument->deleteFile();
+            $existingDocument->delete();
+        }
+
+        // Create document record
+        $document = EnrollmentDocument::create([
+            'student_id' => $student->id,
+            'document_type' => $documentType,
+            'sub_type' => $subType, // NEW: Store sub-type
+            'original_filename' => $originalName,
+            'stored_filename' => $storedName,
+            'file_path' => $filePath,
+            'file_size' => $file->getSize(),
+            'mime_type' => $file->getMimeType(),
+            'status' => EnrollmentDocument::STATUS_PENDING,
+            'uploaded_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document uploaded successfully.',
+            'document' => [
+                'id' => $document->id,
+                'type' => $document->document_type,
+                'sub_type' => $document->sub_type,
+                'label' => $document->full_document_label,
+                'filename' => $document->original_filename,
+                'size' => $document->formatted_file_size,
+                'status' => $document->status,
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Document upload failed: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Upload failed. Please try again.'
+        ], 500);
+    }
+}
 
     /**
      * Delete a document
@@ -228,13 +234,18 @@ private function canAccessDocument(EnrollmentDocument $document): bool
     /**
      * Generate unique stored filename
      */
-    private function generateStoredFilename(Student $student, string $documentType, string $extension): string
-    {
-        $timestamp = now()->format('YmdHis');
-        $random = Str::random(6);
-        
-        return "{$documentType}_{$student->id}_{$timestamp}_{$random}.{$extension}";
+    private function generateStoredFilename(Student $student, string $documentType, ?string $subType, string $extension): string
+{
+    $timestamp = now()->format('YmdHis');
+    $random = Str::random(6);
+    
+    // Include sub-type in filename if provided
+    if ($subType) {
+        return "{$documentType}_{$subType}_{$student->id}_{$timestamp}_{$random}.{$extension}";
     }
+    
+    return "{$documentType}_{$student->id}_{$timestamp}_{$random}.{$extension}";
+}
 
     /**
      * Get student directory path

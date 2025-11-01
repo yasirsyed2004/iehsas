@@ -83,26 +83,68 @@ class EnrollmentController extends Controller
     /**
  * Show document upload form
  */
+/**
+ * Show document upload form
+ */
 public function showDocumentForm()
 {
     $studentId = Session::get('enrollment_student_id');
     
     if (!$studentId) {
-        return redirect()->route('enrollment.verify')->withErrors(['general' => 'Please verify your enrollment code first.']);
+        return redirect()->route('enrollment.verify')
+            ->withErrors(['general' => 'Please verify your enrollment code first.']);
     }
 
-    // Load student with selected courses
-    $student = Student::with('selectedCourses')->findOrFail($studentId);
+    $student = Student::findOrFail($studentId);
     
-    // Check if enrollment is already submitted
     if ($student->enrollment_form_submitted) {
-        return redirect()->route('enrollment.success')->with('info', 'Your enrollment has already been submitted.');
+        return redirect()->route('enrollment.success');
     }
 
-    $documents = $student->enrollmentDocuments()->get()->keyBy('document_type');
-    $documentTypes = EnrollmentDocument::getDocumentTypes();
+    // Get all uploaded documents grouped by type and sub-type
+    $documents = $student->getGroupedDocuments();
 
-    return view('enrollment.documents', compact('student', 'documents', 'documentTypes'));
+    // Define document structure with sub-types
+    $documentStructure = [
+        'identity' => [
+            'label' => 'Identity Document (CNIC/Passport/Form-B)',
+            'subtypes' => [
+                'cnic_front' => ['label' => 'CNIC Front Side', 'required' => true],
+                'cnic_back' => ['label' => 'CNIC Back Side', 'required' => true],
+                'passport' => ['label' => 'Passport', 'required' => false],
+                'form_b' => ['label' => 'Form-B', 'required' => false],
+            ]
+        ],
+        'photo' => [
+            'label' => 'Recent Photograph',
+            'subtypes' => null, // No subtypes for photo
+            'required' => true
+        ],
+        'education' => [
+            'label' => 'Educational Certificates',
+            'subtypes' => [
+                'matric' => ['label' => 'Matriculation / O-Levels', 'required' => true],
+                'intermediate' => ['label' => 'Intermediate / A-Levels / FA / FSc', 'required' => false],
+                'bachelors' => ['label' => 'Bachelor\'s Degree', 'required' => false],
+                'masters' => ['label' => 'Master\'s Degree', 'required' => false],
+                'other' => ['label' => 'Other Certificate', 'required' => false],
+            ]
+        ],
+        'cv' => [
+            'label' => 'CV/Resume & Experience',
+            'subtypes' => [
+                'cv' => ['label' => 'CV / Resume', 'required' => true],
+                'experience_letter' => ['label' => 'Experience Letter', 'required' => false],
+                'certificate' => ['label' => 'Professional Certificate', 'required' => false],
+            ]
+        ],
+    ];
+
+    return view('enrollment.documents', [
+        'student' => $student,
+        'documents' => $documents,
+        'documentStructure' => $documentStructure,
+    ]);
 }
 
     /**

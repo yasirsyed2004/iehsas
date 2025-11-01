@@ -230,12 +230,76 @@ $expiryTime = $this->enrollment_code_generated_at->copy()->addHours($expiryHours
      * Check if all required documents are uploaded
      */
     public function hasAllRequiredDocuments(): bool
-    {
-        $requiredTypes = ['identity', 'education', 'cv', 'photo'];
-        $uploadedTypes = $this->enrollmentDocuments()->pluck('document_type')->toArray();
+{
+    // Define required documents with their sub-types
+    $requiredDocuments = [
+        // Identity: Both CNIC front and back required
+        ['type' => 'identity', 'sub_type' => 'cnic_front'],
+        ['type' => 'identity', 'sub_type' => 'cnic_back'],
         
-        return count(array_intersect($requiredTypes, $uploadedTypes)) === count($requiredTypes);
+        // Education: Only Matric is required
+        ['type' => 'education', 'sub_type' => 'matric'],
+        
+        // CV: Main CV is required
+        ['type' => 'cv', 'sub_type' => 'cv'],
+        
+        // Photo: No sub-type
+        ['type' => 'photo', 'sub_type' => null],
+    ];
+
+    foreach ($requiredDocuments as $required) {
+        $query = $this->enrollmentDocuments()
+            ->where('document_type', $required['type']);
+        
+        if ($required['sub_type'] !== null) {
+            $query->where('sub_type', $required['sub_type']);
+        }
+        
+        if (!$query->exists()) {
+            return false;
+        }
     }
+
+    return true;
+}
+
+/**
+ * ADD: Get document by type and sub-type
+ */
+public function getDocumentByTypeAndSubType(string $type, ?string $subType = null): ?EnrollmentDocument
+{
+    $query = $this->enrollmentDocuments()->where('document_type', $type);
+    
+    if ($subType !== null) {
+        $query->where('sub_type', $subType);
+    } else {
+        $query->whereNull('sub_type');
+    }
+    
+    return $query->first();
+}
+
+/**
+ * ADD: Get all documents grouped by type and sub-type
+ */
+public function getGroupedDocuments(): array
+{
+    $documents = $this->enrollmentDocuments;
+    $grouped = [];
+    
+    foreach ($documents as $document) {
+        $type = $document->document_type;
+        $subType = $document->sub_type ?? 'main';
+        
+        if (!isset($grouped[$type])) {
+            $grouped[$type] = [];
+        }
+        
+        $grouped[$type][$subType] = $document;
+    }
+    
+    return $grouped;
+}
 
     /**
      * Check if all documents are approved

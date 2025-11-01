@@ -15,6 +15,20 @@ class DocumentUploadRequest extends FormRequest
     }
 
     /**
+     * Get valid sub-types for a document type
+     */
+    private function getValidSubTypes(string $documentType): array
+    {
+        return match($documentType) {
+            'identity' => ['cnic_front', 'cnic_back', 'passport', 'form_b'],
+            'education' => ['matric', 'intermediate', 'bachelors', 'masters', 'other'],
+            'cv' => ['cv', 'experience_letter', 'certificate'],
+            'photo' => [],
+            default => []
+        };
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
@@ -25,6 +39,23 @@ class DocumentUploadRequest extends FormRequest
         
         return [
             'document_type' => 'required|in:identity,education,cv,photo',
+            'sub_type' => [
+                'nullable',
+                'string',
+                'max:50',
+                function ($attribute, $value, $fail) use ($documentType) {
+                    // Validate sub_type based on document_type
+                    $validSubTypes = $this->getValidSubTypes($documentType);
+                    
+                    if ($documentType !== 'photo' && empty($value)) {
+                        $fail('Sub-type is required for ' . $documentType . ' documents.');
+                    }
+                    
+                    if (!empty($value) && !in_array($value, $validSubTypes)) {
+                        $fail('Invalid sub-type for ' . $documentType . ' document.');
+                    }
+                },
+            ],
             'document' => [
                 'required',
                 'file',
@@ -73,6 +104,7 @@ class DocumentUploadRequest extends FormRequest
             'document.mimes' => 'The file type is not supported for this document type.',
             'document_type.required' => 'Document type is required.',
             'document_type.in' => 'Invalid document type selected.',
+            'sub_type.required' => 'Please specify the document sub-type.',
         ];
     }
 
@@ -84,6 +116,7 @@ class DocumentUploadRequest extends FormRequest
         return [
             'document' => 'file',
             'document_type' => 'document type',
+            'sub_type' => 'document sub-type',
         ];
     }
 
@@ -92,10 +125,16 @@ class DocumentUploadRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // Clean the document type if needed
+        // Clean the document type and sub_type if needed
         if ($this->has('document_type')) {
             $this->merge([
                 'document_type' => strtolower(trim($this->document_type))
+            ]);
+        }
+        
+        if ($this->has('sub_type')) {
+            $this->merge([
+                'sub_type' => $this->sub_type ? strtolower(trim($this->sub_type)) : null
             ]);
         }
     }

@@ -8,15 +8,44 @@ use App\Models\EnrollmentDocument;
 use App\Services\EnrollmentMailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\EnrollmentPdfService;
 
 class EnrollmentManagementController extends Controller
 {
     protected $mailService;
+    protected $pdfService;
 
-    public function __construct(EnrollmentMailService $mailService)
+    public function __construct(EnrollmentMailService $mailService, EnrollmentPdfService $pdfService)
     {
         $this->mailService = $mailService;
+        $this->pdfService = $pdfService;
     }
+
+    /**
+ * Download enrollment PDF
+ */
+public function downloadPDF(Student $student)
+{
+    try {
+        return $this->pdfService->downloadPDF($student);
+    } catch (\Exception $e) {
+        \Log::error('PDF Generation Error: ' . $e->getMessage());
+        return back()->withErrors(['error' => 'Failed to generate PDF. Please try again.']);
+    }
+}
+
+/**
+ * View enrollment PDF in browser
+ */
+public function viewPDF(Student $student)
+{
+    try {
+        return $this->pdfService->streamPDF($student);
+    } catch (\Exception $e) {
+        \Log::error('PDF Generation Error: ' . $e->getMessage());
+        return back()->withErrors(['error' => 'Failed to generate PDF. Please try again.']);
+    }
+}
 
     /**
      * Display enrollments dashboard

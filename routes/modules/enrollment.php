@@ -61,6 +61,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin'])->group(functi
         
         // Dashboard and student listings
         Route::get('/', [EnrollmentManagementController::class, 'index'])->name('index');
+
+        // ADD THESE TWO ROUTES HERE (before other routes):
+        Route::get('/{student}/pdf/download', [EnrollmentManagementController::class, 'downloadPDF'])->name('pdf.download');
+        Route::get('/{student}/pdf/view', [EnrollmentManagementController::class, 'viewPDF'])->name('pdf.view');
         
         // FIXED: Email configuration and testing routes MUST come BEFORE the catch-all /{student} route
         Route::get('/test-email', [EnrollmentManagementController::class, 'showEmailTest'])->name('test-email');

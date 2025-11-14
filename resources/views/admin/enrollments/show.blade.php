@@ -773,6 +773,34 @@
         </div>
     </div>
 
+    {{-- PDF Download Section - ADD AT THE VERY END --}}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card-modern">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                <h5 class="mb-3 fw-bold">Download Complete Enrollment Report</h5>
+                <p class="text-muted mb-4">
+                    Generate a comprehensive PDF including student details, entry test history, 
+                    selected courses, and all submitted documents.
+                </p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="{{ route('admin.enrollments.pdf.download', $student) }}" 
+                       class="btn btn-danger btn-lg px-5">
+                        <i class="fas fa-download me-2"></i>
+                        Download PDF Report
+                    </a>
+                    <a href="{{ route('admin.enrollments.pdf.view', $student) }}" 
+                       class="btn btn-outline-danger btn-lg px-5"
+                       target="_blank">
+                        <i class="fas fa-eye me-2"></i>
+                        View in Browser
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function openRejectModal(documentId) {

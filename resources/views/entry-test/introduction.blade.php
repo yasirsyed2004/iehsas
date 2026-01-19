@@ -169,7 +169,7 @@
                     <div class="text-white text-2xl font-bold">
                         <i class="fas fa-graduation-cap mr-2"></i>IEHSAS
                     </div>
-                    <a href="{{ route('home') }}" class="text-white hover:text-gray-200 transition duration-300">
+                    <a href="https://www.iehsas.com/" target="_blank" class="text-white hover:text-gray-200 transition duration-300">
                         <i class="fas fa-home mr-1"></i>Home
                     </a>
                 </div>

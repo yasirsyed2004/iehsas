@@ -7,41 +7,11 @@
     <title>Question #{{ $question->id }} - Admin LMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    {{-- Include Shared Admin Styles --}}
+    @include('admin.partials.styles')
+
+    {{-- Page-specific styles --}}
     <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            z-index: 1000;
-        }
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            min-height: 100vh;
-        }
-        .sidebar .nav-link {
-            color: #ecf0f1;
-            border-radius: 5px;
-            margin: 2px 10px;
-            transition: all 0.3s;
-        }
-        .sidebar .nav-link:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-        }
-        .sidebar .nav-link.active {
-            background-color: #3498db;
-            color: white;
-        }
-        .user-info {
-            color: #ecf0f1;
-            padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
         .info-card {
             background: white;
             border-radius: 15px;
@@ -128,71 +98,9 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <nav class="sidebar">
-        <div class="user-info text-center">
-            <div class="mb-2">
-                @if(Auth::guard('admin')->check() && Auth::guard('admin')->user()->avatar)
-                    <img src="{{ asset('storage/' . Auth::guard('admin')->user()->avatar) }}" alt="Avatar" class="rounded-circle" width="60" height="60">
-                @else
-                    <i class="fas fa-user-circle fa-3x"></i>
-                @endif
-            </div>
-            <h6>{{ Auth::guard('admin')->check() ? Auth::guard('admin')->user()->name : 'Admin' }}</h6>
-            <small>{{ Auth::guard('admin')->check() ? ucfirst(str_replace('_', ' ', Auth::guard('admin')->user()->role ?? 'admin')) : 'Administrator' }}</small>
-        </div>
-        
-        <ul class="nav flex-column p-3">
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.dashboard') }}">
-                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.users.index') }}">
-                    <i class="fas fa-users me-2"></i> Users Management
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.entry-tests.index') }}">
-                    <i class="fas fa-clipboard-list me-2"></i> Entry Tests
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="{{ route('admin.questions.index') }}">
-                    <i class="fas fa-question-circle me-2"></i> Question Bank
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.student-attempts.index') }}">
-                    <i class="fas fa-chart-line me-2"></i> Student Attempts
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" onclick="alert('Coming Soon!')">
-                    <i class="fas fa-book me-2"></i> E-Learning
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" onclick="alert('Coming Soon!')">
-                    <i class="fas fa-chart-bar me-2"></i> Reports
-                </a>
-            </li>
-            <li class="nav-item mt-3">
-                <a class="nav-link" href="{{ route('admin.profile') }}">
-                    <i class="fas fa-user-cog me-2"></i> Profile
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                    <i class="fas fa-sign-out-alt me-2"></i> Logout
-                </a>
-                <form id="logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
-                    @csrf
-                </form>
-            </li>
-        </ul>
-    </nav>
+        <!-- Sidebar -->
+    {{-- Include Shared Sidebar --}}
+    @include('admin.partials.sidebar', ['activeMenu' => 'questions'])
 
     <!-- Main Content -->
     <div class="main-content">

@@ -57,7 +57,7 @@
                         <a href="{{ route('entry-test.introduction') }}" class="text-white hover:text-gray-200 transition duration-300">
                             <i class="fas fa-arrow-left mr-1"></i>Back to Introduction
                         </a>
-                        <a href="{{ route('home') }}" class="text-white hover:text-gray-200 transition duration-300">
+                        <a href="https://www.iehsas.com/" target="_blank" class="text-white hover:text-gray-200 transition duration-300">
                             <i class="fas fa-home mr-1"></i>Home
                         </a>
                     </div>

@@ -7,6 +7,10 @@
     <title>Student Enrollment Details - {{ $student->full_name }} - Admin LMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    {{-- Include Shared Admin Styles --}}
+    @include('admin.partials.styles')
+
+    {{-- Page-specific styles --}}
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -17,52 +21,7 @@
 
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            z-index: 1000;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
-        }
-        
-        .main-content {
-            margin-left: 250px;
-            padding: 30px;
-            min-height: 100vh;
-        }
-        
-        .sidebar .nav-link {
-            color: #ecf0f1;
-            border-radius: 8px;
-            margin: 3px 10px;
-            padding: 12px 15px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        
-        .sidebar .nav-link:hover {
-            background-color: rgba(255,255,255,0.15);
-            color: white;
-            transform: translateX(5px);
-        }
-        
-        .sidebar .nav-link.active {
-            background: var(--primary-gradient);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .user-info {
-            color: #ecf0f1;
-            padding: 25px 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
         /* Enhanced Cards */
@@ -342,73 +301,9 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <nav class="sidebar">
-        <div class="user-info text-center">
-            <div class="mb-2">
-                @if(Auth::guard('admin')->check() && Auth::guard('admin')->user()->avatar)
-                    <img src="{{ asset('storage/' . Auth::guard('admin')->user()->avatar) }}" alt="Avatar" class="rounded-circle" width="60" height="60">
-                @else
-                    <i class="fas fa-user-circle fa-3x"></i>
-                @endif
-            </div>
-            <h6 class="mb-1">{{ Auth::guard('admin')->check() ? Auth::guard('admin')->user()->name : 'Admin' }}</h6>
-            <small style="opacity: 0.8;">{{ Auth::guard('admin')->check() ? ucfirst(str_replace('_', ' ', Auth::guard('admin')->user()->role ?? 'admin')) : 'Administrator' }}</small>
-        </div>
-        
-        <ul class="nav flex-column p-3">
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.dashboard') }}">
-                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.users.index') }}">
-                    <i class="fas fa-users me-2"></i> Users Management
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.entry-tests.index') }}">
-                    <i class="fas fa-clipboard-list me-2"></i> Entry Tests
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.questions.index') }}">
-                    <i class="fas fa-question-circle me-2"></i> Question Bank
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.student-attempts.index') }}">
-                    <i class="fas fa-clipboard-check me-2"></i> Student Attempts
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.courses.index') }}">
-                    <i class="fas fa-graduation-cap me-2"></i> Courses
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('admin.course-categories.index') }}">
-                    <i class="fas fa-tags me-2"></i> Course Categories
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="{{ route('admin.enrollments.index') }}">
-                    <i class="fas fa-user-graduate me-2"></i> Enrollments
-                </a>
-            </li>
-        </ul>
-        
-        <!-- Logout -->
-        <div class="p-3 mt-auto">
-            <form method="POST" action="{{ route('admin.logout') }}">
-                @csrf
-                <button type="submit" class="btn btn-outline-light btn-sm w-100">
-                    <i class="fas fa-sign-out-alt me-2"></i> Logout
-                </button>
-            </form>
-        </div>
-    </nav>
+        <!-- Sidebar -->
+    {{-- Include Shared Sidebar --}}
+    @include('admin.partials.sidebar', ['activeMenu' => 'enrollments'])
 
     <!-- Main Content -->
     <div class="main-content">

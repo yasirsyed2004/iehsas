@@ -1,8 +1,8 @@
 {{-- File: resources/views/admin/partials/sidebar.blade.php --}}
-{{-- 
+{{--
     Shared Admin Sidebar Component
     Usage: @include('admin.partials.sidebar', ['activeMenu' => 'dashboard'])
-    
+
     Available activeMenu values:
     - dashboard
     - users
@@ -12,6 +12,9 @@
     - courses
     - course-categories
     - enrollments
+    - departments
+    - tasks
+    - notifications
     - e-learning
     - reports
     - profile
@@ -96,12 +99,50 @@
         
         {{-- Enrollments --}}
         <li class="nav-item">
-            <a class="nav-link {{ ($activeMenu ?? '') === 'enrollments' ? 'active' : '' }}" 
+            <a class="nav-link {{ ($activeMenu ?? '') === 'enrollments' ? 'active' : '' }}"
                href="{{ route('admin.enrollments.index') }}">
                 <i class="fas fa-user-graduate me-2"></i> Enrollments
             </a>
         </li>
-        
+
+        {{-- Task Management Section --}}
+        <li class="nav-item mt-3">
+            <hr class="border-secondary opacity-25 my-2">
+        </li>
+        <li class="nav-item">
+            <small class="text-uppercase px-3 opacity-50" style="font-size: 0.65rem; letter-spacing: 1px; color: rgba(255,255,255,0.6);">Task Management</small>
+        </li>
+
+        {{-- Departments --}}
+        <li class="nav-item">
+            <a class="nav-link {{ ($activeMenu ?? '') === 'departments' ? 'active' : '' }}"
+               href="{{ route('admin.departments.index') }}">
+                <i class="fas fa-building me-2"></i> Departments
+            </a>
+        </li>
+
+        {{-- Tasks --}}
+        <li class="nav-item">
+            <a class="nav-link {{ ($activeMenu ?? '') === 'tasks' ? 'active' : '' }}"
+               href="{{ route('admin.tasks.index') }}">
+                <i class="fas fa-tasks me-2"></i> Tasks
+            </a>
+        </li>
+
+        {{-- Notifications --}}
+        <li class="nav-item">
+            <a class="nav-link {{ ($activeMenu ?? '') === 'notifications' ? 'active' : '' }}"
+               href="{{ route('admin.notifications.index') }}">
+                <i class="fas fa-bell me-2"></i> Notifications
+                @php
+                    $unreadCount = \App\Models\Notification::forAdmin(Auth::guard('admin')->id())->unread()->count();
+                @endphp
+                @if($unreadCount > 0)
+                    <span class="badge bg-danger ms-1">{{ $unreadCount > 99 ? '99+' : $unreadCount }}</span>
+                @endif
+            </a>
+        </li>
+
         {{-- E-Learning (Coming Soon) --}}
         <li class="nav-item">
             <a class="nav-link {{ ($activeMenu ?? '') === 'e-learning' ? 'active' : '' }}" 

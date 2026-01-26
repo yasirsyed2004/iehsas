@@ -13,6 +13,9 @@ use App\Http\Controllers\Admin\CourseCategoryController;
 use App\Http\Controllers\Admin\CourseModuleController;
 use App\Http\Controllers\Admin\CourseLessonController;
 use App\Http\Controllers\Admin\CourseEnrollmentController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\TaskController;
+use App\Http\Controllers\Admin\NotificationController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
     // Public Admin Routes
@@ -131,5 +134,48 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('bulk-enroll', [CourseEnrollmentController::class, 'bulkEnroll'])->name('bulk-enroll.store');
             Route::get('export', [CourseEnrollmentController::class, 'export'])->name('export');
         });
+
+        // Department Management
+        Route::prefix('departments')->name('departments.')->group(function () {
+            Route::get('/', [DepartmentController::class, 'index'])->name('index');
+            Route::get('create', [DepartmentController::class, 'create'])->name('create');
+            Route::post('/', [DepartmentController::class, 'store'])->name('store');
+            Route::get('{department}', [DepartmentController::class, 'show'])->name('show');
+            Route::get('{department}/edit', [DepartmentController::class, 'edit'])->name('edit');
+            Route::put('{department}', [DepartmentController::class, 'update'])->name('update');
+            Route::delete('{department}', [DepartmentController::class, 'destroy'])->name('destroy');
+            Route::post('{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('toggle-status');
+        });
+
+        // Task Management
+        Route::prefix('tasks')->name('tasks.')->group(function () {
+            Route::get('/', [TaskController::class, 'index'])->name('index');
+            Route::get('create', [TaskController::class, 'create'])->name('create');
+            Route::post('/', [TaskController::class, 'store'])->name('store');
+            Route::get('{task}', [TaskController::class, 'show'])->name('show');
+            Route::get('{task}/edit', [TaskController::class, 'edit'])->name('edit');
+            Route::put('{task}', [TaskController::class, 'update'])->name('update');
+            Route::delete('{task}', [TaskController::class, 'destroy'])->name('destroy');
+            Route::post('{task}/comment', [TaskController::class, 'addComment'])->name('add-comment');
+            Route::delete('{task}/comment/{comment}', [TaskController::class, 'deleteComment'])->name('delete-comment');
+            Route::delete('{task}/attachment/{attachment}', [TaskController::class, 'deleteAttachment'])->name('delete-attachment');
+            Route::post('{task}/generate-share', [TaskController::class, 'generateShareLink'])->name('generate-share');
+            Route::post('{task}/revoke-share', [TaskController::class, 'revokeShareLink'])->name('revoke-share');
+            Route::post('{task}/update-progress', [TaskController::class, 'updateProgress'])->name('update-progress');
+        });
+
+        // Notifications
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('unread-count', [NotificationController::class, 'getUnreadCount'])->name('unread-count');
+            Route::get('recent', [NotificationController::class, 'getRecent'])->name('recent');
+            Route::post('{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
+            Route::post('mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::delete('{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+            Route::delete('/', [NotificationController::class, 'clearAll'])->name('clear-all');
+        });
     });
 });
+
+// Public route for task sharing (outside admin middleware)
+Route::get('task/view/{token}', [TaskController::class, 'publicView'])->name('task.public-view');

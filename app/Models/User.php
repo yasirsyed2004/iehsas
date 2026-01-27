@@ -233,4 +233,26 @@ class User extends Authenticatable
     {
         return $query->where('role', 'student');
     }
+
+    // Task Management Relationships
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
+    public function taskComments()
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
+    public function taskNotifications()
+    {
+        return $this->hasMany(Notification::class, 'notifiable_id')
+            ->where('notifiable_type', 'user');
+    }
+
+    public function unreadTaskNotifications()
+    {
+        return $this->taskNotifications()->where('is_read', false);
+    }
 }

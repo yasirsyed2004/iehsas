@@ -54,4 +54,31 @@ class Admin extends Authenticatable
             'moderator' => 'Moderator'
         ];
     }
+
+    // Task Management Relationships
+    public function headOfDepartments()
+    {
+        return $this->hasMany(Department::class, 'head_id');
+    }
+
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_by');
+    }
+
+    public function taskComments()
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'notifiable_id')
+            ->where('notifiable_type', 'admin');
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->notifications()->where('is_read', false);
+    }
 }

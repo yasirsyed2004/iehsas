@@ -9,6 +9,7 @@
     - entry-tests
     - questions
     - student-attempts
+    - registered-students
     - courses
     - course-categories
     - enrollments
@@ -75,12 +76,21 @@
         
         {{-- Student Attempts --}}
         <li class="nav-item">
-            <a class="nav-link {{ ($activeMenu ?? '') === 'student-attempts' ? 'active' : '' }}" 
+            <a class="nav-link {{ ($activeMenu ?? '') === 'student-attempts' ? 'active' : '' }}"
                href="{{ route('admin.student-attempts.index') }}">
                 <i class="fas fa-chart-line me-2"></i> Student Attempts
             </a>
         </li>
-        
+
+        {{-- Registered Students --}}
+        <li class="nav-item">
+            <a class="nav-link {{ ($activeMenu ?? '') === 'registered-students' ? 'active' : '' }}"
+               href="{{ route('admin.registered-students.index') }}"
+               style="white-space: nowrap;">
+                <i class="fas fa-id-card me-2"></i> Reg. Students
+            </a>
+        </li>
+
         {{-- Courses --}}
         <li class="nav-item">
             <a class="nav-link {{ ($activeMenu ?? '') === 'courses' ? 'active' : '' }}" 

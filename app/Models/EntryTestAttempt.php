@@ -71,6 +71,17 @@ class EntryTestAttempt extends Model
         return $this->percentage >= $this->entryTest->passing_score;
     }
 
+    /**
+     * Get passed attribute for easy access in views
+     */
+    public function getPassedAttribute()
+    {
+        if (!$this->entryTest || $this->percentage === null) {
+            return false;
+        }
+        return $this->percentage >= $this->entryTest->passing_score;
+    }
+
     // Get the participant (either user or student)
     public function getParticipantAttribute()
     {

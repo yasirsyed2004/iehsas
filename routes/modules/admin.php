@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\CourseEnrollmentController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\RegisteredStudentController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
     // Public Admin Routes
@@ -66,6 +67,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{attempt}', [StudentAttemptController::class, 'show'])->name('show');
             Route::post('{attempt}/allow-retake', [StudentAttemptController::class, 'allowRetake'])->name('allow-retake');
             Route::delete('{attempt}', [StudentAttemptController::class, 'destroy'])->name('destroy');
+        });
+
+        // Registered Students Management
+        Route::prefix('registered-students')->name('registered-students.')->group(function () {
+            Route::get('/', [RegisteredStudentController::class, 'index'])->name('index');
+            Route::get('export', [RegisteredStudentController::class, 'export'])->name('export');
+            Route::get('{student}', [RegisteredStudentController::class, 'show'])->name('show');
+            Route::post('{student}/toggle-retake', [RegisteredStudentController::class, 'toggleRetake'])->name('toggle-retake');
+            Route::delete('{student}', [RegisteredStudentController::class, 'destroy'])->name('destroy');
         });
 
         // Course Categories Management

@@ -208,7 +208,7 @@
                         <div style="max-width: 1024px; margin: 0 auto 32px auto;">
                             <div class="video-container">
                                 <iframe 
-                                    src="https://www.youtube.com/embed/81FaYEOEn1c?enablejsapi=1&rel=0&modestbranding=1" 
+                                    src="https://www.youtube.com/embed/gaJXfvoG-DE?enablejsapi=1&rel=0&modestbranding=1" 
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
                                     allowfullscreen
                                     id="youtube-video"

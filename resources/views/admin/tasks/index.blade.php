@@ -39,9 +39,17 @@
                     </ol>
                 </nav>
             </div>
-            <a href="{{ route('admin.tasks.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i>Create Task
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('admin.tasks.export-pdf', request()->query()) }}" class="btn btn-outline-danger" title="Export PDF">
+                    <i class="fas fa-file-pdf me-1"></i>PDF
+                </a>
+                <a href="{{ route('admin.tasks.export-excel', request()->query()) }}" class="btn btn-outline-success" title="Export Excel">
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </a>
+                <a href="{{ route('admin.tasks.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Create Task
+                </a>
+            </div>
         </div>
 
         @if(session('success'))
@@ -71,8 +79,8 @@
             <div class="col-md-2">
                 <div class="card bg-warning text-white">
                     <div class="card-body text-center py-3">
-                        <h3 class="mb-0">{{ $stats['pending'] }}</h3>
-                        <small>Pending</small>
+                        <h3 class="mb-0">{{ $stats['not_started'] }}</h3>
+                        <small>Not Started</small>
                     </div>
                 </div>
             </div>
@@ -81,6 +89,14 @@
                     <div class="card-body text-center py-3">
                         <h3 class="mb-0">{{ $stats['in_progress'] }}</h3>
                         <small>In Progress</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card" style="background-color: #0d6efd;">
+                    <div class="card-body text-center py-3 text-white">
+                        <h3 class="mb-0">{{ $stats['submitted_for_review'] }}</h3>
+                        <small>Under Review</small>
                     </div>
                 </div>
             </div>
@@ -210,7 +226,7 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ $task->status_badge_class }}">
-                                            {{ ucfirst(str_replace('_', ' ', $task->status)) }}
+                                            {{ \App\Models\Task::getStatuses()[$task->status] ?? ucfirst(str_replace('_', ' ', $task->status)) }}
                                         </span>
                                     </td>
                                     <td>
@@ -237,9 +253,11 @@
                                             <a href="{{ route('admin.tasks.show', $task) }}" class="btn btn-sm btn-outline-primary" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            @if($task->isEditable())
                                             <a href="{{ route('admin.tasks.edit', $task) }}" class="btn btn-sm btn-outline-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                            @endif
                                             <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this task?')">
                                                 @csrf
                                                 @method('DELETE')

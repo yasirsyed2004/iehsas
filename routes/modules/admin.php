@@ -17,6 +17,8 @@ use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\RegisteredStudentController;
+use App\Http\Controllers\Admin\DarController;
+use App\Http\Controllers\Admin\ExportController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
     // Public Admin Routes
@@ -161,6 +163,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('tasks')->name('tasks.')->group(function () {
             Route::get('/', [TaskController::class, 'index'])->name('index');
             Route::get('create', [TaskController::class, 'create'])->name('create');
+            Route::get('export-pdf', [ExportController::class, 'taskSummaryPdf'])->name('export-pdf');
+            Route::get('export-excel', [ExportController::class, 'taskSummaryExcel'])->name('export-excel');
             Route::post('/', [TaskController::class, 'store'])->name('store');
             Route::get('{task}', [TaskController::class, 'show'])->name('show');
             Route::get('{task}/edit', [TaskController::class, 'edit'])->name('edit');
@@ -172,6 +176,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{task}/generate-share', [TaskController::class, 'generateShareLink'])->name('generate-share');
             Route::post('{task}/revoke-share', [TaskController::class, 'revokeShareLink'])->name('revoke-share');
             Route::post('{task}/update-progress', [TaskController::class, 'updateProgress'])->name('update-progress');
+            Route::post('{task}/review', [TaskController::class, 'submitReview'])->name('submit-review');
+            Route::get('{task}/export-pdf', [ExportController::class, 'taskDetailPdf'])->name('detail-pdf');
+        });
+
+        // Daily Activity Reports (DAR) Management
+        Route::prefix('dar')->name('dar.')->group(function () {
+            Route::get('/', [DarController::class, 'index'])->name('index');
+            Route::get('monthly', [DarController::class, 'monthly'])->name('monthly');
+            Route::get('monthly/export-pdf', [ExportController::class, 'darMonthlyPdf'])->name('monthly-pdf');
+            Route::get('monthly/export-excel', [ExportController::class, 'darMonthlyExcel'])->name('monthly-excel');
+            Route::get('{dar}', [DarController::class, 'show'])->name('show');
+            Route::post('{dar}/review', [DarController::class, 'review'])->name('review');
+            Route::get('{dar}/export-pdf', [ExportController::class, 'darDetailPdf'])->name('detail-pdf');
         });
 
         // Notifications

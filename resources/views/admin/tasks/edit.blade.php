@@ -24,16 +24,27 @@
                     </ol>
                 </nav>
             </div>
-            <a href="{{ route('admin.tasks.index') }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-1"></i>Back
+            <a href="{{ route('admin.tasks.show', $task) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Task
             </a>
         </div>
 
+        @if($task->is_locked)
+            <div class="alert alert-warning">
+                <i class="fas fa-lock me-2"></i>This task is locked. No further edits are allowed.
+            </div>
+        @endif
+
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-tasks me-2"></i>Edit: {{ $task->title }}
                 </h5>
+                <div>
+                    <span class="badge bg-{{ $task->status_badge_class }}">
+                        {{ \App\Models\Task::getStatuses()[$task->status] ?? ucfirst(str_replace('_', ' ', $task->status)) }}
+                    </span>
+                </div>
             </div>
             <div class="card-body">
                 <form action="{{ route('admin.tasks.update', $task) }}" method="POST" enctype="multipart/form-data">
@@ -74,6 +85,16 @@
                             @enderror
                         </div>
 
+                        <div class="col-12 mb-3">
+                            <label for="expected_deliverables" class="form-label">Expected Deliverables</label>
+                            <textarea class="form-control @error('expected_deliverables') is-invalid @enderror"
+                                      id="expected_deliverables" name="expected_deliverables" rows="3"
+                                      placeholder="What are the expected outcomes / deliverables for this task?">{{ old('expected_deliverables', $task->expected_deliverables) }}</textarea>
+                            @error('expected_deliverables')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="col-md-6 mb-3">
                             <label for="assigned_to" class="form-label">Assign To</label>
                             <select class="form-select @error('assigned_to') is-invalid @enderror" id="assigned_to" name="assigned_to">
@@ -89,7 +110,16 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control @error('start_date') is-invalid @enderror"
+                                   id="start_date" name="start_date" value="{{ old('start_date', $task->start_date?->format('Y-m-d')) }}">
+                            @error('start_date')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-3 mb-3">
                             <label for="deadline" class="form-label">Deadline</label>
                             <input type="date" class="form-control @error('deadline') is-invalid @enderror"
                                    id="deadline" name="deadline" value="{{ old('deadline', $task->deadline?->format('Y-m-d')) }}">
@@ -176,7 +206,7 @@
                     @endif
 
                     <div class="d-flex justify-content-end gap-2 mt-3">
-                        <a href="{{ route('admin.tasks.index') }}" class="btn btn-light">Cancel</a>
+                        <a href="{{ route('admin.tasks.show', $task) }}" class="btn btn-light">Cancel</a>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save me-1"></i>Update Task
                         </button>

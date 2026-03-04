@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Department;
+use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -38,7 +40,10 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('admin.users.create');
+        $departments = Department::active()->orderBy('name')->get();
+        $admins = Admin::where('status', true)->orderBy('name')->get();
+
+        return view('admin.users.create', compact('departments', 'admins'));
     }
 
     public function store(Request $request)
@@ -47,13 +52,15 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => 'required|in:admin,teacher,student',
+            'role' => 'required|in:admin,teacher,student,staff',
             'phone' => 'nullable|string|max:20',
             'student_id' => 'nullable|string|max:50|unique:users,student_id',
             'date_of_birth' => 'nullable|date|before:today',
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string|max:500',
-            'status' => 'required|boolean'
+            'status' => 'required|boolean',
+            'department_id' => 'nullable|exists:departments,id',
+            'reporting_manager_id' => 'nullable|exists:admins,id',
         ]);
 
         // Generate student ID if role is student and no ID provided
@@ -73,12 +80,16 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        $user->load(['department', 'reportingManager']);
         return view('admin.users.show', compact('user'));
     }
 
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $departments = Department::active()->orderBy('name')->get();
+        $admins = Admin::where('status', true)->orderBy('name')->get();
+
+        return view('admin.users.edit', compact('user', 'departments', 'admins'));
     }
 
     public function update(Request $request, User $user)
@@ -87,13 +98,15 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Password::defaults()],
-            'role' => 'required|in:admin,teacher,student',
+            'role' => 'required|in:admin,teacher,student,staff',
             'phone' => 'nullable|string|max:20',
             'student_id' => 'nullable|string|max:50|unique:users,student_id,' . $user->id,
             'date_of_birth' => 'nullable|date|before:today',
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string|max:500',
-            'status' => 'required|boolean'
+            'status' => 'required|boolean',
+            'department_id' => 'nullable|exists:departments,id',
+            'reporting_manager_id' => 'nullable|exists:admins,id',
         ]);
 
         $data = $request->except(['password', 'password_confirmation']);

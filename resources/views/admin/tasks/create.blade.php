@@ -73,6 +73,16 @@
                             @enderror
                         </div>
 
+                        <div class="col-12 mb-3">
+                            <label for="expected_deliverables" class="form-label">Expected Deliverables</label>
+                            <textarea class="form-control @error('expected_deliverables') is-invalid @enderror"
+                                      id="expected_deliverables" name="expected_deliverables" rows="3"
+                                      placeholder="What are the expected outcomes / deliverables for this task?">{{ old('expected_deliverables') }}</textarea>
+                            @error('expected_deliverables')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="col-md-6 mb-3">
                             <label for="assigned_to" class="form-label">Assign To</label>
                             <select class="form-select @error('assigned_to') is-invalid @enderror" id="assigned_to" name="assigned_to">
@@ -88,7 +98,16 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control @error('start_date') is-invalid @enderror"
+                                   id="start_date" name="start_date" value="{{ old('start_date') }}">
+                            @error('start_date')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-3 mb-3">
                             <label for="deadline" class="form-label">Deadline</label>
                             <input type="date" class="form-control @error('deadline') is-invalid @enderror"
                                    id="deadline" name="deadline" value="{{ old('deadline') }}">
@@ -115,7 +134,7 @@
                             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select @error('status') is-invalid @enderror" id="status" name="status" required>
                                 @foreach(\App\Models\Task::getStatuses() as $key => $value)
-                                    <option value="{{ $key }}" {{ old('status', 'pending') == $key ? 'selected' : '' }}>
+                                    <option value="{{ $key }}" {{ old('status', 'not_started') == $key ? 'selected' : '' }}>
                                         {{ $value }}
                                     </option>
                                 @endforeach

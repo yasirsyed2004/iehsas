@@ -24,4 +24,5 @@ require __DIR__.'/modules/admin.php';
 require __DIR__.'/modules/entry-test.php';
 require __DIR__.'/modules/enrollment.php';     // Phase 2 Enrollment Routes
 require __DIR__.'/modules/courses.php';
+require __DIR__.'/modules/staff.php';
 require __DIR__.'/auth.php';

@@ -24,6 +24,11 @@
             font-size: 11px;
             text-transform: uppercase;
         }
+        .avatar-sm {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -74,6 +79,7 @@
                                 <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                                 <option value="teacher" {{ request('role') == 'teacher' ? 'selected' : '' }}>Teacher</option>
                                 <option value="student" {{ request('role') == 'student' ? 'selected' : '' }}>Student</option>
+                                <option value="staff" {{ request('role') == 'staff' ? 'selected' : '' }}>Staff</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -110,7 +116,6 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
-                                <th>Email</th>
                                 <th>Role</th>
                                 <th>Student ID</th>
                                 <th>Status</th>
@@ -133,12 +138,13 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>{{ $user->email }}</td>
                                 <td>
                                     @if($user->role == 'admin')
                                         <span class="role-badge bg-danger text-white">Admin</span>
                                     @elseif($user->role == 'teacher')
                                         <span class="role-badge bg-info text-white">Teacher</span>
+                                    @elseif($user->role == 'staff')
+                                        <span class="role-badge bg-warning text-dark">Staff</span>
                                     @else
                                         <span class="role-badge bg-primary text-white">Student</span>
                                     @endif
@@ -166,7 +172,7 @@
                                                 <i class="fas fa-toggle-{{ $user->status ? 'on' : 'off' }}"></i>
                                             </button>
                                         </form>
-                                        <button class="btn btn-outline-danger" onclick="deleteUser({{ $user->id }})" title="Delete">
+                                        <button class="btn btn-outline-danger" onclick="deleteUser('{{ route('admin.users.destroy', $user) }}')" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -174,7 +180,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="7" class="text-center py-4">
                                     <i class="fas fa-users fa-3x text-muted mb-3"></i>
                                     <h5 class="text-muted">No users found</h5>
                                     <p class="text-muted">Start by creating your first user.</p>
@@ -203,10 +209,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function deleteUser(id) {
+        function deleteUser(url) {
             if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
                 const form = document.getElementById('delete-form');
-                form.action = `/admin/users/${id}`;
+                form.action = url;
                 form.submit();
             }
         }

@@ -122,6 +122,7 @@
                                     <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin</option>
                                     <option value="teacher" {{ old('role', $user->role) == 'teacher' ? 'selected' : '' }}>Teacher</option>
                                     <option value="student" {{ old('role', $user->role) == 'student' ? 'selected' : '' }}>Student</option>
+                                    <option value="staff" {{ old('role', $user->role) == 'staff' ? 'selected' : '' }}>Staff</option>
                                 </select>
                                 @error('role')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -148,6 +149,45 @@
                                 @error('status')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="staffFields" style="display: {{ old('role', $user->role) == 'staff' ? 'block' : 'none' }};">
+                        <hr>
+                        <h6 class="text-primary"><i class="fas fa-id-badge me-2"></i>Staff Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Department</label>
+                                    <select class="form-select @error('department_id') is-invalid @enderror" name="department_id">
+                                        <option value="">Select Department</option>
+                                        @foreach($departments as $dept)
+                                            <option value="{{ $dept->id }}" {{ old('department_id', $user->department_id) == $dept->id ? 'selected' : '' }}>
+                                                {{ $dept->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('department_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Reporting Manager</label>
+                                    <select class="form-select @error('reporting_manager_id') is-invalid @enderror" name="reporting_manager_id">
+                                        <option value="">Select Manager</option>
+                                        @foreach($admins as $admin)
+                                            <option value="{{ $admin->id }}" {{ old('reporting_manager_id', $user->reporting_manager_id) == $admin->id ? 'selected' : '' }}>
+                                                {{ $admin->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('reporting_manager_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -221,12 +261,10 @@
         function toggleStudentFields() {
             const role = document.querySelector('select[name="role"]').value;
             const studentFields = document.getElementById('studentFields');
-            
-            if (role === 'student') {
-                studentFields.style.display = 'block';
-            } else {
-                studentFields.style.display = 'none';
-            }
+            const staffFields = document.getElementById('staffFields');
+
+            studentFields.style.display = role === 'student' ? 'block' : 'none';
+            staffFields.style.display = role === 'staff' ? 'block' : 'none';
         }
 
         // Auto hide alerts after 5 seconds

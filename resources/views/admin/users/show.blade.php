@@ -76,6 +76,8 @@
                             <span class="badge bg-danger fs-6">Admin</span>
                         @elseif($user->role == 'teacher')
                             <span class="badge bg-info fs-6">Teacher</span>
+                        @elseif($user->role == 'staff')
+                            <span class="badge bg-warning text-dark fs-6">Staff</span>
                         @else
                             <span class="badge bg-primary fs-6">Student</span>
                         @endif
@@ -220,6 +222,38 @@
                 </div>
             </div>
         </div>
+
+        @if($user->role == 'staff')
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-id-badge me-2"></i>Staff Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <span class="info-label">Department:</span>
+                            </div>
+                            <div class="col-sm-9">
+                                <span class="info-value">{{ $user->department->name ?? 'Not Assigned' }}</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <span class="info-label">Reporting Manager:</span>
+                            </div>
+                            <div class="col-sm-9">
+                                <span class="info-value">{{ $user->reportingManager->name ?? 'Not Assigned' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

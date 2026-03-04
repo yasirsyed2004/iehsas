@@ -139,6 +139,14 @@
             </a>
         </li>
 
+        {{-- Daily Reports (DAR) --}}
+        <li class="nav-item">
+            <a class="nav-link {{ ($activeMenu ?? '') === 'dar' ? 'active' : '' }}"
+               href="{{ route('admin.dar.index') }}">
+                <i class="fas fa-file-alt me-2"></i> Daily Reports
+            </a>
+        </li>
+
         {{-- Notifications --}}
         <li class="nav-item">
             <a class="nav-link {{ ($activeMenu ?? '') === 'notifications' ? 'active' : '' }}"

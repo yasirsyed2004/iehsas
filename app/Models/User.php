@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
@@ -27,7 +28,9 @@ class User extends Authenticatable
         'phone',
         'date_of_birth',
         'gender',
-        'address'
+        'address',
+        'department_id',
+        'reporting_manager_id',
     ];
 
     /**
@@ -232,6 +235,27 @@ class User extends Authenticatable
     public function scopeStudents($query)
     {
         return $query->where('role', 'student');
+    }
+
+    // Staff Relationships
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function reportingManager(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'reporting_manager_id');
+    }
+
+    public function progressLogs(): HasMany
+    {
+        return $this->hasMany(TaskProgressLog::class);
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === 'staff';
     }
 
     // Task Management Relationships

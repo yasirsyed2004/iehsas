@@ -1,5 +1,5 @@
 <?php
-// File: routes/modules/admin.php - UPDATED VERSION
+// File: routes/modules/admin.php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AuthController;
@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\RegisteredStudentController;
 use App\Http\Controllers\Admin\DarController;
 use App\Http\Controllers\Admin\ExportController;
+use App\Http\Controllers\Admin\RolePermissionController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
     // Public Admin Routes
@@ -28,86 +29,92 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Protected Admin Routes
     Route::middleware(['auth:admin'])->group(function () {
         // Dashboard
-        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
-        
-        // Authentication
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard')->middleware('can:view_dashboard');
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index')->middleware('can:view_dashboard');
+
+        // Authentication (no permission needed — all admins need these)
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('profile', [AuthController::class, 'profile'])->name('profile');
         Route::post('profile', [AuthController::class, 'updateProfile'])->name('profile.update');
-        
+
         // User Management
-        Route::resource('users', UserController::class);
-        Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
-        
+        Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('can:view_users');
+        Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('can:create_users');
+        Route::post('users', [UserController::class, 'store'])->name('users.store')->middleware('can:create_users');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->middleware('can:view_users');
+        Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('can:edit_users');
+        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('can:edit_users');
+        Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status')->middleware('can:edit_users');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('can:delete_users');
+
         // Entry Test Management
         Route::prefix('entry-tests')->name('entry-tests.')->group(function () {
-            Route::get('/', [AdminEntryTestController::class, 'index'])->name('index');
-            Route::get('create', [AdminEntryTestController::class, 'create'])->name('create');
-            Route::post('/', [AdminEntryTestController::class, 'store'])->name('store');
-            Route::get('{entryTest}', [AdminEntryTestController::class, 'show'])->name('show');
-            Route::get('{entryTest}/edit', [AdminEntryTestController::class, 'edit'])->name('edit');
-            Route::put('{entryTest}', [AdminEntryTestController::class, 'update'])->name('update');
-            Route::delete('{entryTest}', [AdminEntryTestController::class, 'destroy'])->name('destroy');
-            Route::post('{entryTest}/toggle-status', [AdminEntryTestController::class, 'toggleStatus'])->name('toggle-status');
+            Route::get('/', [AdminEntryTestController::class, 'index'])->name('index')->middleware('can:view_entry_tests');
+            Route::get('create', [AdminEntryTestController::class, 'create'])->name('create')->middleware('can:create_entry_tests');
+            Route::post('/', [AdminEntryTestController::class, 'store'])->name('store')->middleware('can:create_entry_tests');
+            Route::get('{entryTest}', [AdminEntryTestController::class, 'show'])->name('show')->middleware('can:view_entry_tests');
+            Route::get('{entryTest}/edit', [AdminEntryTestController::class, 'edit'])->name('edit')->middleware('can:edit_entry_tests');
+            Route::put('{entryTest}', [AdminEntryTestController::class, 'update'])->name('update')->middleware('can:edit_entry_tests');
+            Route::post('{entryTest}/toggle-status', [AdminEntryTestController::class, 'toggleStatus'])->name('toggle-status')->middleware('can:edit_entry_tests');
+            Route::delete('{entryTest}', [AdminEntryTestController::class, 'destroy'])->name('destroy')->middleware('can:delete_entry_tests');
         });
-        
+
         // Question Bank Management
         Route::prefix('questions')->name('questions.')->group(function () {
-            Route::get('/', [QuestionController::class, 'index'])->name('index');
-            Route::get('create', [QuestionController::class, 'create'])->name('create');
-            Route::post('/', [QuestionController::class, 'store'])->name('store');
-            Route::get('{question}', [QuestionController::class, 'show'])->name('show');
-            Route::get('{question}/edit', [QuestionController::class, 'edit'])->name('edit');
-            Route::put('{question}', [QuestionController::class, 'update'])->name('update');
-            Route::delete('{question}', [QuestionController::class, 'destroy'])->name('destroy');
+            Route::get('/', [QuestionController::class, 'index'])->name('index')->middleware('can:view_questions');
+            Route::get('create', [QuestionController::class, 'create'])->name('create')->middleware('can:create_questions');
+            Route::post('/', [QuestionController::class, 'store'])->name('store')->middleware('can:create_questions');
+            Route::get('{question}', [QuestionController::class, 'show'])->name('show')->middleware('can:view_questions');
+            Route::get('{question}/edit', [QuestionController::class, 'edit'])->name('edit')->middleware('can:edit_questions');
+            Route::put('{question}', [QuestionController::class, 'update'])->name('update')->middleware('can:edit_questions');
+            Route::delete('{question}', [QuestionController::class, 'destroy'])->name('destroy')->middleware('can:delete_questions');
         });
-        
+
         // Student Attempts Management
-        Route::prefix('student-attempts')->name('student-attempts.')->group(function () {
+        Route::prefix('student-attempts')->name('student-attempts.')->middleware('can:view_student_attempts')->group(function () {
             Route::get('/', [StudentAttemptController::class, 'index'])->name('index');
             Route::get('{attempt}', [StudentAttemptController::class, 'show'])->name('show');
-            Route::post('{attempt}/allow-retake', [StudentAttemptController::class, 'allowRetake'])->name('allow-retake');
-            Route::delete('{attempt}', [StudentAttemptController::class, 'destroy'])->name('destroy');
+            Route::post('{attempt}/allow-retake', [StudentAttemptController::class, 'allowRetake'])->name('allow-retake')->middleware('can:manage_student_attempts');
+            Route::delete('{attempt}', [StudentAttemptController::class, 'destroy'])->name('destroy')->middleware('can:manage_student_attempts');
         });
 
         // Registered Students Management
-        Route::prefix('registered-students')->name('registered-students.')->group(function () {
+        Route::prefix('registered-students')->name('registered-students.')->middleware('can:view_registered_students')->group(function () {
             Route::get('/', [RegisteredStudentController::class, 'index'])->name('index');
             Route::get('export', [RegisteredStudentController::class, 'export'])->name('export');
             Route::get('{student}', [RegisteredStudentController::class, 'show'])->name('show');
-            Route::post('{student}/toggle-retake', [RegisteredStudentController::class, 'toggleRetake'])->name('toggle-retake');
-            Route::delete('{student}', [RegisteredStudentController::class, 'destroy'])->name('destroy');
+            Route::post('{student}/toggle-retake', [RegisteredStudentController::class, 'toggleRetake'])->name('toggle-retake')->middleware('can:manage_registered_students');
+            Route::delete('{student}', [RegisteredStudentController::class, 'destroy'])->name('destroy')->middleware('can:manage_registered_students');
         });
 
         // Course Categories Management
         Route::prefix('course-categories')->name('course-categories.')->group(function () {
-            Route::get('/', [CourseCategoryController::class, 'index'])->name('index');
-            Route::get('create', [CourseCategoryController::class, 'create'])->name('create');
-            Route::post('/', [CourseCategoryController::class, 'store'])->name('store');
-            Route::get('{courseCategory}', [CourseCategoryController::class, 'show'])->name('show');
-            Route::get('{courseCategory}/edit', [CourseCategoryController::class, 'edit'])->name('edit');
-            Route::put('{courseCategory}', [CourseCategoryController::class, 'update'])->name('update');
-            Route::delete('{courseCategory}', [CourseCategoryController::class, 'destroy'])->name('destroy');
-            Route::post('{courseCategory}/toggle-status', [CourseCategoryController::class, 'toggleStatus'])->name('toggle-status');
-            Route::post('reorder', [CourseCategoryController::class, 'reorder'])->name('reorder');
+            Route::get('/', [CourseCategoryController::class, 'index'])->name('index')->middleware('can:view_course_categories');
+            Route::get('create', [CourseCategoryController::class, 'create'])->name('create')->middleware('can:create_course_categories');
+            Route::post('/', [CourseCategoryController::class, 'store'])->name('store')->middleware('can:create_course_categories');
+            Route::post('reorder', [CourseCategoryController::class, 'reorder'])->name('reorder')->middleware('can:edit_course_categories');
+            Route::get('{courseCategory}', [CourseCategoryController::class, 'show'])->name('show')->middleware('can:view_course_categories');
+            Route::get('{courseCategory}/edit', [CourseCategoryController::class, 'edit'])->name('edit')->middleware('can:edit_course_categories');
+            Route::put('{courseCategory}', [CourseCategoryController::class, 'update'])->name('update')->middleware('can:edit_course_categories');
+            Route::post('{courseCategory}/toggle-status', [CourseCategoryController::class, 'toggleStatus'])->name('toggle-status')->middleware('can:edit_course_categories');
+            Route::delete('{courseCategory}', [CourseCategoryController::class, 'destroy'])->name('destroy')->middleware('can:delete_course_categories');
         });
 
         // Courses Management
         Route::prefix('courses')->name('courses.')->group(function () {
-            Route::get('/', [CourseController::class, 'index'])->name('index');
-            Route::get('create', [CourseController::class, 'create'])->name('create');
-            Route::post('/', [CourseController::class, 'store'])->name('store');
-            Route::get('{course}', [CourseController::class, 'show'])->name('show');
-            Route::get('{course}/edit', [CourseController::class, 'edit'])->name('edit');
-            Route::put('{course}', [CourseController::class, 'update'])->name('update');
-            Route::delete('{course}', [CourseController::class, 'destroy'])->name('destroy');
-            Route::post('{course}/toggle-status', [CourseController::class, 'toggleStatus'])->name('toggle-status');
-            Route::post('{course}/update-status', [CourseController::class, 'updateStatus'])->name('update-status');
-            Route::post('{course}/duplicate', [CourseController::class, 'duplicate'])->name('duplicate');
-            
-            // Course Modules Management
-            Route::prefix('{course}/modules')->name('modules.')->group(function () {
+            Route::get('/', [CourseController::class, 'index'])->name('index')->middleware('can:view_courses');
+            Route::get('create', [CourseController::class, 'create'])->name('create')->middleware('can:create_courses');
+            Route::post('/', [CourseController::class, 'store'])->name('store')->middleware('can:create_courses');
+            Route::get('{course}', [CourseController::class, 'show'])->name('show')->middleware('can:view_courses');
+            Route::get('{course}/edit', [CourseController::class, 'edit'])->name('edit')->middleware('can:edit_courses');
+            Route::put('{course}', [CourseController::class, 'update'])->name('update')->middleware('can:edit_courses');
+            Route::post('{course}/toggle-status', [CourseController::class, 'toggleStatus'])->name('toggle-status')->middleware('can:edit_courses');
+            Route::post('{course}/update-status', [CourseController::class, 'updateStatus'])->name('update-status')->middleware('can:edit_courses');
+            Route::post('{course}/duplicate', [CourseController::class, 'duplicate'])->name('duplicate')->middleware('can:edit_courses');
+            Route::delete('{course}', [CourseController::class, 'destroy'])->name('destroy')->middleware('can:delete_courses');
+
+            // Course Modules Management (inherits course permission)
+            Route::prefix('{course}/modules')->name('modules.')->middleware('can:edit_courses')->group(function () {
                 Route::get('/', [CourseModuleController::class, 'index'])->name('index');
                 Route::get('create', [CourseModuleController::class, 'create'])->name('create');
                 Route::post('/', [CourseModuleController::class, 'store'])->name('store');
@@ -116,7 +123,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 Route::put('{module}', [CourseModuleController::class, 'update'])->name('update');
                 Route::delete('{module}', [CourseModuleController::class, 'destroy'])->name('destroy');
                 Route::post('reorder', [CourseModuleController::class, 'reorder'])->name('reorder');
-                
+
                 // Course Lessons Management
                 Route::prefix('{module}/lessons')->name('lessons.')->group(function () {
                     Route::get('/', [CourseLessonController::class, 'index'])->name('index');
@@ -129,70 +136,72 @@ Route::prefix('admin')->name('admin.')->group(function () {
                     Route::post('reorder', [CourseLessonController::class, 'reorder'])->name('reorder');
                 });
             });
-            
+
             // Course Enrollments Management
-            Route::prefix('{course}/enrollments')->name('enrollments.')->group(function () {
+            Route::prefix('{course}/enrollments')->name('enrollments.')->middleware('can:view_enrollments')->group(function () {
                 Route::get('/', [CourseEnrollmentController::class, 'index'])->name('index');
-                Route::post('enroll', [CourseEnrollmentController::class, 'enrollStudent'])->name('enroll');
-                Route::post('{enrollment}/update-status', [CourseEnrollmentController::class, 'updateStatus'])->name('update-status');
-                Route::delete('{enrollment}', [CourseEnrollmentController::class, 'destroy'])->name('destroy');
+                Route::post('enroll', [CourseEnrollmentController::class, 'enrollStudent'])->name('enroll')->middleware('can:manage_enrollments');
+                Route::post('{enrollment}/update-status', [CourseEnrollmentController::class, 'updateStatus'])->name('update-status')->middleware('can:manage_enrollments');
+                Route::delete('{enrollment}', [CourseEnrollmentController::class, 'destroy'])->name('destroy')->middleware('can:manage_enrollments');
             });
         });
 
         // Bulk Course Enrollments
-        Route::prefix('enrollments')->name('enrollments.')->group(function () {
+        Route::prefix('enrollments')->name('enrollments.')->middleware('can:view_enrollments')->group(function () {
             Route::get('/', [CourseEnrollmentController::class, 'allEnrollments'])->name('index');
-            Route::get('bulk-enroll', [CourseEnrollmentController::class, 'bulkEnrollForm'])->name('bulk-enroll');
-            Route::post('bulk-enroll', [CourseEnrollmentController::class, 'bulkEnroll'])->name('bulk-enroll.store');
             Route::get('export', [CourseEnrollmentController::class, 'export'])->name('export');
+            Route::middleware('can:manage_enrollments')->group(function () {
+                Route::get('bulk-enroll', [CourseEnrollmentController::class, 'bulkEnrollForm'])->name('bulk-enroll');
+                Route::post('bulk-enroll', [CourseEnrollmentController::class, 'bulkEnroll'])->name('bulk-enroll.store');
+            });
         });
 
         // Department Management
         Route::prefix('departments')->name('departments.')->group(function () {
-            Route::get('/', [DepartmentController::class, 'index'])->name('index');
-            Route::get('create', [DepartmentController::class, 'create'])->name('create');
-            Route::post('/', [DepartmentController::class, 'store'])->name('store');
-            Route::get('{department}', [DepartmentController::class, 'show'])->name('show');
-            Route::get('{department}/edit', [DepartmentController::class, 'edit'])->name('edit');
-            Route::put('{department}', [DepartmentController::class, 'update'])->name('update');
-            Route::delete('{department}', [DepartmentController::class, 'destroy'])->name('destroy');
-            Route::post('{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('toggle-status');
+            Route::get('/', [DepartmentController::class, 'index'])->name('index')->middleware('can:view_departments');
+            Route::get('create', [DepartmentController::class, 'create'])->name('create')->middleware('can:create_departments');
+            Route::post('/', [DepartmentController::class, 'store'])->name('store')->middleware('can:create_departments');
+            Route::get('{department}', [DepartmentController::class, 'show'])->name('show')->middleware('can:view_departments');
+            Route::get('{department}/edit', [DepartmentController::class, 'edit'])->name('edit')->middleware('can:edit_departments');
+            Route::put('{department}', [DepartmentController::class, 'update'])->name('update')->middleware('can:edit_departments');
+            Route::post('{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('toggle-status')->middleware('can:edit_departments');
+            Route::delete('{department}', [DepartmentController::class, 'destroy'])->name('destroy')->middleware('can:delete_departments');
         });
 
         // Task Management
         Route::prefix('tasks')->name('tasks.')->group(function () {
-            Route::get('/', [TaskController::class, 'index'])->name('index');
-            Route::get('create', [TaskController::class, 'create'])->name('create');
-            Route::get('export-pdf', [ExportController::class, 'taskSummaryPdf'])->name('export-pdf');
-            Route::get('export-excel', [ExportController::class, 'taskSummaryExcel'])->name('export-excel');
-            Route::post('/', [TaskController::class, 'store'])->name('store');
-            Route::get('{task}', [TaskController::class, 'show'])->name('show');
-            Route::get('{task}/edit', [TaskController::class, 'edit'])->name('edit');
-            Route::put('{task}', [TaskController::class, 'update'])->name('update');
-            Route::delete('{task}', [TaskController::class, 'destroy'])->name('destroy');
-            Route::post('{task}/comment', [TaskController::class, 'addComment'])->name('add-comment');
-            Route::delete('{task}/comment/{comment}', [TaskController::class, 'deleteComment'])->name('delete-comment');
-            Route::delete('{task}/attachment/{attachment}', [TaskController::class, 'deleteAttachment'])->name('delete-attachment');
-            Route::post('{task}/generate-share', [TaskController::class, 'generateShareLink'])->name('generate-share');
-            Route::post('{task}/revoke-share', [TaskController::class, 'revokeShareLink'])->name('revoke-share');
-            Route::post('{task}/update-progress', [TaskController::class, 'updateProgress'])->name('update-progress');
-            Route::post('{task}/review', [TaskController::class, 'submitReview'])->name('submit-review');
-            Route::get('{task}/export-pdf', [ExportController::class, 'taskDetailPdf'])->name('detail-pdf');
+            Route::get('/', [TaskController::class, 'index'])->name('index')->middleware('can:view_tasks');
+            Route::get('create', [TaskController::class, 'create'])->name('create')->middleware('can:create_tasks');
+            Route::get('export-pdf', [ExportController::class, 'taskSummaryPdf'])->name('export-pdf')->middleware('can:view_tasks');
+            Route::get('export-excel', [ExportController::class, 'taskSummaryExcel'])->name('export-excel')->middleware('can:view_tasks');
+            Route::post('/', [TaskController::class, 'store'])->name('store')->middleware('can:create_tasks');
+            Route::get('{task}', [TaskController::class, 'show'])->name('show')->middleware('can:view_tasks');
+            Route::get('{task}/edit', [TaskController::class, 'edit'])->name('edit')->middleware('can:edit_tasks');
+            Route::get('{task}/export-pdf', [ExportController::class, 'taskDetailPdf'])->name('detail-pdf')->middleware('can:view_tasks');
+            Route::put('{task}', [TaskController::class, 'update'])->name('update')->middleware('can:edit_tasks');
+            Route::post('{task}/comment', [TaskController::class, 'addComment'])->name('add-comment')->middleware('can:edit_tasks');
+            Route::delete('{task}/comment/{comment}', [TaskController::class, 'deleteComment'])->name('delete-comment')->middleware('can:edit_tasks');
+            Route::delete('{task}/attachment/{attachment}', [TaskController::class, 'deleteAttachment'])->name('delete-attachment')->middleware('can:edit_tasks');
+            Route::post('{task}/generate-share', [TaskController::class, 'generateShareLink'])->name('generate-share')->middleware('can:edit_tasks');
+            Route::post('{task}/revoke-share', [TaskController::class, 'revokeShareLink'])->name('revoke-share')->middleware('can:edit_tasks');
+            Route::post('{task}/update-progress', [TaskController::class, 'updateProgress'])->name('update-progress')->middleware('can:edit_tasks');
+            Route::post('{task}/review', [TaskController::class, 'submitReview'])->name('submit-review')->middleware('can:edit_tasks');
+            Route::delete('{task}', [TaskController::class, 'destroy'])->name('destroy')->middleware('can:delete_tasks');
         });
 
         // Daily Activity Reports (DAR) Management
-        Route::prefix('dar')->name('dar.')->group(function () {
+        Route::prefix('dar')->name('dar.')->middleware('can:view_dar')->group(function () {
             Route::get('/', [DarController::class, 'index'])->name('index');
             Route::get('monthly', [DarController::class, 'monthly'])->name('monthly');
             Route::get('monthly/export-pdf', [ExportController::class, 'darMonthlyPdf'])->name('monthly-pdf');
             Route::get('monthly/export-excel', [ExportController::class, 'darMonthlyExcel'])->name('monthly-excel');
             Route::get('{dar}', [DarController::class, 'show'])->name('show');
-            Route::post('{dar}/review', [DarController::class, 'review'])->name('review');
+            Route::post('{dar}/review', [DarController::class, 'review'])->name('review')->middleware('can:manage_dar');
             Route::get('{dar}/export-pdf', [ExportController::class, 'darDetailPdf'])->name('detail-pdf');
         });
 
-        // Notifications
-        Route::prefix('notifications')->name('notifications.')->group(function () {
+        // Notifications (all admins can view their own notifications)
+        Route::prefix('notifications')->name('notifications.')->middleware('can:view_notifications')->group(function () {
             Route::get('/', [NotificationController::class, 'index'])->name('index');
             Route::get('unread-count', [NotificationController::class, 'getUnreadCount'])->name('unread-count');
             Route::get('recent', [NotificationController::class, 'getRecent'])->name('recent');
@@ -200,6 +209,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
             Route::delete('{notification}', [NotificationController::class, 'destroy'])->name('destroy');
             Route::delete('/', [NotificationController::class, 'clearAll'])->name('clear-all');
+        });
+
+        // Roles & Permissions Management
+        Route::prefix('roles')->name('roles.')->middleware('can:manage_roles_permissions')->group(function () {
+            Route::get('/', [RolePermissionController::class, 'index'])->name('index');
+            Route::get('{role}/edit', [RolePermissionController::class, 'edit'])->name('edit');
+            Route::put('{role}', [RolePermissionController::class, 'update'])->name('update');
         });
     });
 });

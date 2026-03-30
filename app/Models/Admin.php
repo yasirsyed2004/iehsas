@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class Admin extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     protected $guard = 'admin';
 
@@ -39,10 +40,16 @@ class Admin extends Authenticatable
         return $this->status;
     }
 
-    // Check admin role
-    public function hasRole($role)
+    // Check admin string role (renamed to avoid conflict with Spatie's hasRole)
+    public function hasStringRole($role)
     {
         return $this->role === $role;
+    }
+
+    // Check if admin is super admin
+    public function isSuperAdmin()
+    {
+        return $this->role === 'super_admin';
     }
 
     // Get admin roles

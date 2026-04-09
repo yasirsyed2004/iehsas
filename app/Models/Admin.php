@@ -52,14 +52,14 @@ class Admin extends Authenticatable
         return $this->role === 'super_admin';
     }
 
-    // Get admin roles
+    // Get admin roles dynamically from Spatie
     public static function getRoles()
     {
-        return [
-            'super_admin' => 'Super Admin',
-            'admin' => 'Admin',
-            'moderator' => 'Moderator'
-        ];
+        return \Spatie\Permission\Models\Role::where('guard_name', 'admin')
+            ->orderBy('name')
+            ->pluck('name', 'name')
+            ->mapWithKeys(fn($name) => [$name => ucwords(str_replace('_', ' ', $name))])
+            ->toArray();
     }
 
     // Task Management Relationships

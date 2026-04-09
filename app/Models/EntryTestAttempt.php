@@ -51,6 +51,11 @@ class EntryTestAttempt extends Model
         return $this->hasMany(EntryTestAnswer::class);
     }
 
+    public function screenshots()
+    {
+        return $this->hasMany(ExamScreenshot::class);
+    }
+
     // Helper Methods
     public function isExpired()
     {

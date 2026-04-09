@@ -51,9 +51,60 @@ class StudentRegistrationRequest extends FormRequest
             // Location & Demographics
             'nationality' => 'required|string|max:100',
             'gender' => 'required|in:male,female,other',
-            'qualification' => 'required|string|max:255',
-            'home_address' => 'required|string|max:1000'
+            'qualification' => 'required|string|in:intermediate,adp,bs_16,ms,phd,other',
+            'qualification_other' => 'required_if:qualification,other|nullable|string|max:255',
+            'session_mode' => 'required|in:online,physical',
+            'home_address' => 'required|string|max:1000',
+
+            // Eligibility proof (conditionally required via withValidator)
+            'eligibility_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
+    }
+
+    /**
+     * Add conditional validation for eligibility proof
+     */
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $qualification = $this->input('qualification');
+            $sessionMode = $this->input('session_mode');
+            $hasFile = $this->hasFile('eligibility_proof');
+
+            // Check if this is an existing student who already uploaded proof
+            $idType = $this->input('id_type');
+            $idNumber = $this->input('id_number');
+            $existingStudent = null;
+
+            if ($idType && $idNumber) {
+                $cleanedId = $this->cleanIdNumber($idNumber, $idType);
+                $existingStudent = Student::where('id_type', $idType)->where('id_number', $cleanedId)->first();
+            }
+
+            // Physical + Intermediate/Other requires IOSH/OSHA certificate
+            if ($sessionMode === 'physical' && in_array($qualification, ['intermediate', 'other'])) {
+                $hasExistingProof = $existingStudent && $existingStudent->enrollmentDocuments()
+                    ->where('document_type', 'education')
+                    ->where('sub_type', 'iosh_osha_certificate')
+                    ->exists();
+
+                if (!$hasFile && !$hasExistingProof) {
+                    $validator->errors()->add('eligibility_proof', 'IOSH/OSHA certificate is required for Physical session with your qualification level.');
+                }
+            }
+
+            // Online + Intermediate/ADP/Other requires HSE experience proof
+            if ($sessionMode === 'online' && in_array($qualification, ['intermediate', 'adp', 'other'])) {
+                $hasExistingProof = $existingStudent && $existingStudent->enrollmentDocuments()
+                    ->where('document_type', 'cv')
+                    ->where('sub_type', 'hse_experience_proof')
+                    ->exists();
+
+                if (!$hasFile && !$hasExistingProof) {
+                    $validator->errors()->add('eligibility_proof', 'HSE experience proof (minimum 2 years) is required for Online session with your qualification level.');
+                }
+            }
+        });
     }
 
     /**
@@ -200,8 +251,15 @@ class StudentRegistrationRequest extends FormRequest
             'gender.required' => 'Gender is required.',
             'gender.in' => 'Please select a valid gender.',
             'qualification.required' => 'Qualification is required.',
+            'qualification.in' => 'Please select a valid qualification.',
+            'qualification_other.required_if' => 'Please specify your qualification/program name.',
+            'session_mode.required' => 'Please select a session mode.',
+            'session_mode.in' => 'Please select a valid session mode.',
             'home_address.required' => 'Home address is required.',
-            'home_address.max' => 'Home address cannot exceed 1000 characters.'
+            'home_address.max' => 'Home address cannot exceed 1000 characters.',
+            'eligibility_proof.file' => 'Please upload a valid file.',
+            'eligibility_proof.mimes' => 'Proof must be a PDF, JPG, or PNG file.',
+            'eligibility_proof.max' => 'Proof file size cannot exceed 5MB.',
         ];
     }
 
@@ -245,13 +303,16 @@ class StudentRegistrationRequest extends FormRequest
         );
         
         // Trim string fields
-        $stringFields = ['full_name', 'father_name', 'email', 'nationality', 'qualification', 'home_address'];
+        $stringFields = ['full_name', 'father_name', 'email', 'nationality', 'qualification', 'home_address', 'qualification_other'];
         foreach ($stringFields as $field) {
             if (isset($validated[$field])) {
                 $validated[$field] = trim($validated[$field]);
             }
         }
-        
+
+        // Remove file from cleaned data (handled separately)
+        unset($validated['eligibility_proof']);
+
         return $validated;
     }
 }

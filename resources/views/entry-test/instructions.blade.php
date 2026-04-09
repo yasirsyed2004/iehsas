@@ -73,13 +73,37 @@
                                 <strong>Contact:</strong> {{ $student->contact_number }}
                             </div>
                             <div>
-                                {{-- FIXED: Display ID Type and Number instead of CNIC --}}
                                 <strong>{{ $student->id_type_label }}:</strong> {{ $student->formatted_id }}<br>
                                 <strong>Gender:</strong> {{ ucfirst($student->gender) }}<br>
-                                <strong>Qualification:</strong> {{ $student->qualification }}
+                                <strong>Qualification:</strong> {{ $student->qualification_label }}<br>
+                                @if($student->session_mode)
+                                    <strong>Session Mode:</strong> {{ $student->session_mode_label }}
+                                @endif
                             </div>
                         </div>
                     </div>
+
+                    <!-- Eligibility Status -->
+                    @if($student->requiresEligibilityProof())
+                        @if($student->hasRequiredEligibilityProof())
+                            <div class="bg-green-50 border-l-4 border-green-400 p-6 rounded-r-xl mb-8">
+                                <h4 class="font-bold text-green-800 mb-2">
+                                    <i class="fas fa-check-circle mr-2"></i>Eligibility Verified
+                                </h4>
+                                <p class="text-green-700">Your eligibility proof has been uploaded successfully. You may proceed with the entry test.</p>
+                            </div>
+                        @else
+                            <div class="bg-red-50 border-l-4 border-red-400 p-6 rounded-r-xl mb-8">
+                                <h4 class="font-bold text-red-800 mb-2">
+                                    <i class="fas fa-exclamation-circle mr-2"></i>Eligibility Proof Required
+                                </h4>
+                                <p class="text-red-700">{{ $student->getEligibilityMessage() }}</p>
+                                <a href="{{ route('entry-test.register') }}" class="inline-block mt-3 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                                    <i class="fas fa-arrow-left mr-1"></i>Go Back to Upload Proof
+                                </a>
+                            </div>
+                        @endif
+                    @endif
 
                     <!-- Test Information -->
                     <div class="grid md:grid-cols-4 gap-4 mb-8">
@@ -178,11 +202,12 @@
                     <div class="text-center">
                         <form action="{{ route('entry-test.start', $entryTest->id) }}" method="POST" id="startTestForm">
                             @csrf
-                            <button type="submit" 
+                            <button type="submit"
                                     id="startButton"
-                                    class="bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:from-green-600 hover:to-blue-700 transform hover:scale-105 transition duration-300 shadow-lg">
+                                    {{ !$canStartTest ? 'disabled' : '' }}
+                                    class="bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:from-green-600 hover:to-blue-700 transform hover:scale-105 transition duration-300 shadow-lg {{ !$canStartTest ? 'opacity-50 cursor-not-allowed' : '' }}">
                                 <i class="fas fa-play-circle mr-2"></i>
-                                Start Test Now
+                                {{ $canStartTest ? 'Start Test Now' : 'Upload Required Proof to Start' }}
                             </button>
                         </form>
                         <p class="text-gray-600 mt-4 text-sm">

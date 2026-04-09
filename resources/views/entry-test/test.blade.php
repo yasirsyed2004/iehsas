@@ -199,6 +199,79 @@
             display: none;
         }
 
+        /* Camera Preview */
+        .camera-preview {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 160px;
+            height: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1050;
+            border: 3px solid #28a745;
+            background: #000;
+        }
+        .camera-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        .camera-status {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            box-shadow: 0 0 6px #28a745;
+        }
+        .camera-status.offline { background: #dc3545; box-shadow: 0 0 6px #dc3545; }
+
+        /* Camera Off Overlay */
+        .camera-off-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+        .camera-off-overlay.active { display: flex; }
+
+        /* Tab Switch Warning Modal */
+        .tab-switch-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(220,53,69,0.9);
+            z-index: 1999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+        .tab-switch-overlay.active { display: flex; }
+
+        /* Face detection warning */
+        .face-warning {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1060;
+            max-width: 320px;
+            display: none;
+        }
+        .face-warning.active { display: block; }
+
         .test-info {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
@@ -400,35 +473,85 @@
         </div>
     </div>
 
+    <!-- Camera Preview -->
+    <div class="camera-preview" id="cameraPreview">
+        <video id="cameraVideo" autoplay muted playsinline></video>
+        <div class="camera-status" id="cameraStatus"></div>
+    </div>
+
+    <!-- Camera Off Overlay -->
+    <div class="camera-off-overlay" id="cameraOffOverlay">
+        <i class="fas fa-video-slash fa-4x mb-4"></i>
+        <h2 class="mb-3">Camera Disconnected</h2>
+        <p class="mb-2">Please re-enable your camera to continue the exam.</p>
+        <p class="text-warning fs-5"><i class="fas fa-clock me-2"></i>Auto-submit in <span id="cameraCountdown">60</span> seconds</p>
+    </div>
+
+    <!-- Tab Switch Warning Overlay -->
+    <div class="tab-switch-overlay" id="tabSwitchOverlay">
+        <i class="fas fa-exclamation-triangle fa-4x mb-4"></i>
+        <h2 class="mb-3">WARNING</h2>
+        <p class="fs-5 mb-4">Switching tabs again will automatically close<br>your examination paper and submit it.</p>
+        <button class="btn btn-light btn-lg" id="tabSwitchDismiss">
+            <i class="fas fa-arrow-left me-2"></i>Return to Exam
+        </button>
+    </div>
+
+    <!-- Face Detection Warning -->
+    <div class="face-warning" id="faceWarning">
+        <div class="alert alert-danger shadow-lg mb-0">
+            <i class="fas fa-user-slash me-2"></i>
+            <span id="faceWarningMessage">Please ensure your face is visible to the camera.</span>
+        </div>
+    </div>
+
+    <!-- Hidden canvas for screenshots -->
+    <canvas id="screenshotCanvas" style="display:none;"></canvas>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script>
         class TestManager {
             constructor() {
                 this.currentQuestion = 0;
                 this.totalQuestions = {{ $entryTest->questions->count() }};
                 this.attemptId = {{ $attempt->id }};
-                // Fix: Calculate time remaining correctly
                 this.timeRemaining = Math.max(0, {{ $attempt->expires_at->timestamp }} - {{ now()->timestamp }});
                 this.answers = {};
                 this.violations = 0;
                 this.questions = @json($entryTest->questions);
-                
+                this.csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+                // Security state
+                this.tabSwitchCount = 0;
+                this.cameraStream = null;
+                this.timerPaused = false;
+                this.cameraOffTimer = null;
+                this.cameraCountdown = 60;
+                this.screenshotInterval = null;
+                this.faceDetectionInterval = null;
+                this.noFaceSeconds = 0;
+                this.faceDetectionReady = false;
+                this.isSubmitting = false;
+
                 this.init();
             }
 
             init() {
                 this.startTimer();
                 this.bindEvents();
+                this.initializeCamera();
                 this.initializeProctoring();
                 this.updateQuestionDisplay();
                 this.loadSavedAnswers();
             }
 
+            // ==================== TIMER ====================
             startTimer() {
                 this.timerInterval = setInterval(() => {
+                    if (this.timerPaused) return;
                     this.timeRemaining--;
                     this.updateTimerDisplay();
-                    
                     if (this.timeRemaining <= 0) {
                         clearInterval(this.timerInterval);
                         this.autoSubmit();
@@ -436,72 +559,238 @@
                 }, 1000);
             }
 
+            pauseTimer() { this.timerPaused = true; }
+            resumeTimer() { this.timerPaused = false; }
+
             updateTimerDisplay() {
                 const minutes = Math.floor(this.timeRemaining / 60);
                 const seconds = this.timeRemaining % 60;
-                const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                
-                document.getElementById('timeDisplay').textContent = display;
-                
+                document.getElementById('timeDisplay').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                 const timer = document.getElementById('timer');
-                if (this.timeRemaining <= 300) { // 5 minutes
-                    timer.classList.add('danger');
-                } else if (this.timeRemaining <= 600) { // 10 minutes
-                    timer.classList.add('warning');
-                }
+                if (this.timeRemaining <= 300) timer.classList.add('danger');
+                else if (this.timeRemaining <= 600) timer.classList.add('warning');
             }
 
-            async initializeProctoring() {
+            // ==================== CAMERA ====================
+            async initializeCamera() {
                 try {
-                    // Request camera and microphone permissions
-                    await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    
-                    // Monitor tab switches
-                    document.addEventListener('visibilitychange', () => {
-                        if (document.hidden) {
-                            this.recordViolation('tab_switch', 'User switched tabs or minimized window');
-                            this.showViolationWarning('Do not switch tabs or minimize the window!');
-                        }
-                    });
+                    this.cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    const video = document.getElementById('cameraVideo');
+                    video.srcObject = this.cameraStream;
 
-                    // Monitor full screen exit
-                    document.addEventListener('fullscreenchange', () => {
-                        if (!document.fullscreenElement) {
-                            this.recordViolation('fullscreen_exit', 'User exited fullscreen mode');
-                        }
-                    });
-
-                    // Prevent right-click
-                    document.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        this.recordViolation('right_click', 'User attempted right-click');
-                    });
-
-                    // Monitor violations
-                    if (this.violations >= 3) {
-                        alert('Too many violations detected. Test will be submitted automatically.');
-                        this.submitTest();
+                    // Monitor camera track
+                    const videoTrack = this.cameraStream.getVideoTracks()[0];
+                    if (videoTrack) {
+                        videoTrack.onended = () => this.handleCameraOff();
+                        videoTrack.onmute = () => this.handleCameraOff();
+                        videoTrack.onunmute = () => this.handleCameraOn();
                     }
 
+                    document.getElementById('cameraStatus').classList.remove('offline');
+                    this.startScreenshotCapture();
+                    this.initFaceDetection();
                 } catch (error) {
-                    console.error('Failed to initialize proctoring:', error);
+                    console.error('Camera init failed:', error);
+                    this.handleCameraOff();
                 }
             }
 
+            handleCameraOff() {
+                document.getElementById('cameraStatus').classList.add('offline');
+                document.querySelector('.camera-preview').style.borderColor = '#dc3545';
+                this.recordViolation('camera_off', 'Camera was turned off or disconnected');
+                this.showViolationWarning('Camera disconnected! Please re-enable your camera.');
+                this.pauseTimer();
+
+                // Show overlay with countdown
+                this.cameraCountdown = 60;
+                document.getElementById('cameraCountdown').textContent = this.cameraCountdown;
+                document.getElementById('cameraOffOverlay').classList.add('active');
+
+                this.cameraOffTimer = setInterval(() => {
+                    this.cameraCountdown--;
+                    document.getElementById('cameraCountdown').textContent = this.cameraCountdown;
+                    if (this.cameraCountdown <= 0) {
+                        clearInterval(this.cameraOffTimer);
+                        this.recordViolation('camera_off_timeout', 'Camera remained off for 60 seconds - auto-submitted');
+                        this.submitTest();
+                    }
+                }, 1000);
+            }
+
+            handleCameraOn() {
+                document.getElementById('cameraStatus').classList.remove('offline');
+                document.querySelector('.camera-preview').style.borderColor = '#28a745';
+                document.getElementById('cameraOffOverlay').classList.remove('active');
+                if (this.cameraOffTimer) {
+                    clearInterval(this.cameraOffTimer);
+                    this.cameraOffTimer = null;
+                }
+                this.resumeTimer();
+            }
+
+            // ==================== PROCTORING ====================
+            initializeProctoring() {
+                // Tab switching - 2-strike policy
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden && !this.isSubmitting) {
+                        this.tabSwitchCount++;
+                        this.recordViolation('tab_switch', `Tab switch #${this.tabSwitchCount}`);
+
+                        if (this.tabSwitchCount === 1) {
+                            // 1st strike: Show prominent warning
+                            document.getElementById('tabSwitchOverlay').classList.add('active');
+                        } else if (this.tabSwitchCount >= 2) {
+                            // 2nd strike: Auto-submit
+                            document.getElementById('tabSwitchOverlay').classList.remove('active');
+                            this.recordViolation('tab_switch_disqualified', 'Exam auto-submitted due to 2nd tab switch');
+                            this.submitTest();
+                        }
+                    }
+                });
+
+                // Dismiss tab switch warning
+                document.getElementById('tabSwitchDismiss').addEventListener('click', () => {
+                    document.getElementById('tabSwitchOverlay').classList.remove('active');
+                });
+
+                // Fullscreen exit detection
+                document.addEventListener('fullscreenchange', () => {
+                    if (!document.fullscreenElement) {
+                        this.recordViolation('fullscreen_exit', 'User exited fullscreen mode');
+                    }
+                });
+
+                // Right-click prevention
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.recordViolation('right_click', 'User attempted right-click');
+                    this.showViolationWarning('Right-click is not allowed during the exam!');
+                });
+
+                // Keyboard shortcut prevention
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && ['c','v','u','s','p'].includes(e.key.toLowerCase())) {
+                        e.preventDefault();
+                        this.recordViolation('keyboard_shortcut', `Blocked: Ctrl+${e.key.toUpperCase()}`);
+                    }
+                    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase()))) {
+                        e.preventDefault();
+                        this.recordViolation('dev_tools', 'Attempted to open developer tools');
+                    }
+                });
+            }
+
+            // ==================== SCREENSHOT CAPTURE ====================
+            startScreenshotCapture() {
+                const captureScreenshot = () => {
+                    if (this.isSubmitting) return;
+                    const video = document.getElementById('cameraVideo');
+                    const canvas = document.getElementById('screenshotCanvas');
+                    if (!video || video.readyState < 2) return;
+
+                    canvas.width = 320;
+                    canvas.height = 240;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, 320, 240);
+
+                    const imageData = canvas.toDataURL('image/jpeg', 0.6);
+                    this.sendScreenshot(imageData);
+
+                    // Schedule next capture at random interval (30-90 seconds)
+                    const nextInterval = (30 + Math.floor(Math.random() * 60)) * 1000;
+                    this.screenshotInterval = setTimeout(captureScreenshot, nextInterval);
+                };
+
+                // First screenshot after 10 seconds
+                this.screenshotInterval = setTimeout(captureScreenshot, 10000);
+            }
+
+            async sendScreenshot(imageData) {
+                try {
+                    await fetch(`/entry-test/attempt/${this.attemptId}/screenshot`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': this.csrfToken
+                        },
+                        body: JSON.stringify({ image: imageData })
+                    });
+                } catch (error) {
+                    console.error('Failed to send screenshot:', error);
+                }
+            }
+
+            // ==================== FACE DETECTION ====================
+            async initFaceDetection() {
+                try {
+                    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+                    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                    this.faceDetectionReady = true;
+                    this.startFaceDetection();
+                } catch (error) {
+                    console.error('Face detection init failed:', error);
+                }
+            }
+
+            startFaceDetection() {
+                if (!this.faceDetectionReady) return;
+
+                this.faceDetectionInterval = setInterval(async () => {
+                    if (this.isSubmitting || this.timerPaused) return;
+
+                    const video = document.getElementById('cameraVideo');
+                    if (!video || video.readyState < 2) return;
+
+                    try {
+                        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }));
+
+                        if (detections.length === 0) {
+                            this.noFaceSeconds += 5;
+                            if (this.noFaceSeconds >= 10 && this.noFaceSeconds < 30) {
+                                this.showFaceWarning('Please ensure your face is visible to the camera.');
+                            }
+                            if (this.noFaceSeconds >= 30) {
+                                this.hideFaceWarning();
+                                this.recordViolation('face_not_detected', 'No face detected for 30+ seconds - auto-submitted');
+                                this.submitTest();
+                                return;
+                            }
+                        } else if (detections.length > 1) {
+                            this.noFaceSeconds = 0;
+                            this.showFaceWarning('Multiple faces detected! Only the test-taker should be visible.');
+                            this.recordViolation('multiple_faces', `${detections.length} faces detected`);
+                        } else {
+                            // Exactly 1 face — good
+                            this.noFaceSeconds = 0;
+                            this.hideFaceWarning();
+                        }
+                    } catch (error) {
+                        console.error('Face detection error:', error);
+                    }
+                }, 5000);
+            }
+
+            showFaceWarning(message) {
+                document.getElementById('faceWarningMessage').textContent = message;
+                document.getElementById('faceWarning').classList.add('active');
+            }
+
+            hideFaceWarning() {
+                document.getElementById('faceWarning').classList.remove('active');
+            }
+
+            // ==================== VIOLATIONS ====================
             async recordViolation(type, details) {
                 this.violations++;
-                
                 try {
                     await fetch(`{{ route('entry-test.track-violation', $attempt->id) }}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            'X-CSRF-TOKEN': this.csrfToken
                         },
-                        body: JSON.stringify({
-                            type: type,
-                            details: details
-                        })
+                        body: JSON.stringify({ type, details })
                     });
                 } catch (error) {
                     console.error('Failed to record violation:', error);
@@ -512,14 +801,11 @@
                 const warning = document.getElementById('violationWarning');
                 document.getElementById('violationMessage').textContent = message;
                 warning.style.display = 'block';
-                
-                setTimeout(() => {
-                    warning.style.display = 'none';
-                }, 3000);
+                setTimeout(() => { warning.style.display = 'none'; }, 3000);
             }
 
+            // ==================== QUESTION NAVIGATION ====================
             bindEvents() {
-                // Navigation buttons
                 document.getElementById('prevBtn').addEventListener('click', () => {
                     if (this.currentQuestion > 0) {
                         this.saveCurrentAnswer();
@@ -538,7 +824,6 @@
                     }
                 });
 
-                // Question navigation
                 document.querySelectorAll('.question-nav-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
                         this.saveCurrentAnswer();
@@ -547,20 +832,14 @@
                     });
                 });
 
-                // Submit button
-                document.getElementById('submitTest').addEventListener('click', () => {
-                    this.showSubmitModal();
-                });
+                document.getElementById('submitTest').addEventListener('click', () => this.showSubmitModal());
+                document.getElementById('confirmSubmit').addEventListener('click', () => this.submitTest());
 
-                document.getElementById('confirmSubmit').addEventListener('click', () => {
-                    this.submitTest();
-                });
-
-                // Option selection
                 document.addEventListener('change', (e) => {
                     if (e.target.type === 'radio') {
                         const option = e.target.closest('.option-item');
-                        document.querySelectorAll('.option-item').forEach(opt => opt.classList.remove('selected'));
+                        const slide = e.target.closest('.question-slide');
+                        slide.querySelectorAll('.option-item').forEach(opt => opt.classList.remove('selected'));
                         option.classList.add('selected');
                         this.saveCurrentAnswer();
                     }
@@ -568,28 +847,17 @@
             }
 
             updateQuestionDisplay() {
-                // Update question slides
                 document.querySelectorAll('.question-slide').forEach((slide, index) => {
                     slide.classList.toggle('d-none', index !== this.currentQuestion);
                 });
-
-                // Update navigation buttons
                 document.getElementById('prevBtn').disabled = this.currentQuestion === 0;
-                document.getElementById('nextBtn').textContent = 
+                document.getElementById('nextBtn').textContent =
                     this.currentQuestion === this.totalQuestions - 1 ? 'Submit Test' : 'Next';
-
-                // Update question counter
                 document.getElementById('currentQuestionNum').textContent = this.currentQuestion + 1;
-
-                // Update navigation grid
                 document.querySelectorAll('.question-nav-btn').forEach((btn, index) => {
                     btn.classList.remove('current');
-                    if (index === this.currentQuestion) {
-                        btn.classList.add('current');
-                    }
+                    if (index === this.currentQuestion) btn.classList.add('current');
                 });
-
-                // Load saved answer for current question
                 this.loadCurrentAnswer();
                 this.updateProgress();
             }
@@ -597,16 +865,11 @@
             saveCurrentAnswer() {
                 const currentSlide = document.querySelector(`.question-slide[data-question="${this.currentQuestion}"]`);
                 const selectedOption = currentSlide.querySelector('input[type="radio"]:checked');
-                
                 if (selectedOption) {
                     const questionId = this.questions[this.currentQuestion].id;
                     this.answers[questionId] = selectedOption.value;
-                    
-                    // Mark as answered in navigation
                     const navBtn = document.querySelector(`.question-nav-btn[data-question="${this.currentQuestion}"]`);
                     navBtn.classList.add('answered');
-                    
-                    // Save to server
                     this.saveAnswerToServer(questionId, selectedOption.value);
                 }
             }
@@ -614,7 +877,6 @@
             loadCurrentAnswer() {
                 const questionId = this.questions[this.currentQuestion].id;
                 const savedAnswer = this.answers[questionId];
-                
                 if (savedAnswer) {
                     const currentSlide = document.querySelector(`.question-slide[data-question="${this.currentQuestion}"]`);
                     const option = currentSlide.querySelector(`input[value="${savedAnswer}"]`);
@@ -629,87 +891,65 @@
                 try {
                     await fetch(`{{ route('entry-test.submit-answer', $attempt->id) }}`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({
-                            question_id: questionId,
-                            selected_answer: selectedAnswer
-                        })
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken },
+                        body: JSON.stringify({ question_id: questionId, selected_answer: selectedAnswer })
                     });
-                } catch (error) {
-                    console.error('Failed to save answer:', error);
-                }
+                } catch (error) { console.error('Failed to save answer:', error); }
             }
 
-            async loadSavedAnswers() {
-                // This would load previously saved answers from the server
-                // For now, we'll start fresh each time
-            }
+            async loadSavedAnswers() {}
 
             updateProgress() {
                 const answeredCount = Object.keys(this.answers).length;
                 document.getElementById('answeredCount').textContent = answeredCount;
-                
-                const percentage = (answeredCount / this.totalQuestions) * 100;
-                document.getElementById('progressBar').style.width = `${percentage}%`;
+                document.getElementById('progressBar').style.width = `${(answeredCount / this.totalQuestions) * 100}%`;
             }
 
             showSubmitModal() {
                 this.saveCurrentAnswer();
-                
                 const answeredCount = Object.keys(this.answers).length;
-                const unansweredCount = this.totalQuestions - answeredCount;
-                
                 document.getElementById('submitSummary').innerHTML = `
                     <div class="row">
-                        <div class="col-6">
-                            <strong>Answered:</strong> ${answeredCount}
-                        </div>
-                        <div class="col-6">
-                            <strong>Unanswered:</strong> ${unansweredCount}
-                        </div>
-                    </div>
-                `;
-                
-                const modal = new bootstrap.Modal(document.getElementById('submitModal'));
-                modal.show();
+                        <div class="col-6"><strong>Answered:</strong> ${answeredCount}</div>
+                        <div class="col-6"><strong>Unanswered:</strong> ${this.totalQuestions - answeredCount}</div>
+                    </div>`;
+                new bootstrap.Modal(document.getElementById('submitModal')).show();
             }
 
+            // ==================== SUBMIT ====================
             async submitTest() {
+                if (this.isSubmitting) return;
+                this.isSubmitting = true;
+
+                // Cleanup
+                clearInterval(this.timerInterval);
+                if (this.screenshotInterval) clearTimeout(this.screenshotInterval);
+                if (this.faceDetectionInterval) clearInterval(this.faceDetectionInterval);
+                if (this.cameraOffTimer) clearInterval(this.cameraOffTimer);
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                }
+
                 try {
-                    clearInterval(this.timerInterval);
-                    
-                    // Show loading
                     const submitBtn = document.getElementById('confirmSubmit');
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
-                    submitBtn.disabled = true;
-                    
-                    // Create and submit form
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+                        submitBtn.disabled = true;
+                    }
+
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = `{{ route('entry-test.submit', $attempt->id) }}`;
-                    
-                    // Add CSRF token
-                    const csrfToken = document.createElement('input');
-                    csrfToken.type = 'hidden';
-                    csrfToken.name = '_token';
-                    csrfToken.value = document.querySelector('meta[name="csrf-token"]').content;
-                    form.appendChild(csrfToken);
-                    
-                    // Submit form
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_token';
+                    csrfInput.value = this.csrfToken;
+                    form.appendChild(csrfInput);
                     document.body.appendChild(form);
                     form.submit();
-                    
                 } catch (error) {
                     console.error('Failed to submit test:', error);
-                    alert('Failed to submit test. Please try again.');
-                    
-                    // Re-enable button on error
-                    const submitBtn = document.getElementById('confirmSubmit');
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Test';
-                    submitBtn.disabled = false;
+                    this.isSubmitting = false;
                 }
             }
 
@@ -719,16 +959,8 @@
             }
         }
 
-        // Initialize test manager when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new TestManager();
-        });
-
-        // Prevent page refresh/navigation
-        window.addEventListener('beforeunload', (e) => {
-            e.preventDefault();
-            e.returnValue = '';
-        });
+        document.addEventListener('DOMContentLoaded', () => { new TestManager(); });
+        window.addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = ''; });
     </script>
 </body>
 </html>

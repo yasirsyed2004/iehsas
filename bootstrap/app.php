@@ -22,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.role' => \App\Http\Middleware\AdminRole::class,
             'staff.auth' => \App\Http\Middleware\StaffAuth::class,
         ]);
+
+        // Authenticated users on web guard redirect to home
+        $middleware->redirectUsersTo('/');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

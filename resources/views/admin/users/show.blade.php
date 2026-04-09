@@ -72,15 +72,16 @@
                         <h4>{{ $user->name }}</h4>
                         <p class="text-muted">{{ $user->email }}</p>
                         
-                        @if($user->role == 'admin')
-                            <span class="badge bg-danger fs-6">Admin</span>
-                        @elseif($user->role == 'teacher')
-                            <span class="badge bg-info fs-6">Teacher</span>
-                        @elseif($user->role == 'staff')
-                            <span class="badge bg-warning text-dark fs-6">Staff</span>
-                        @else
-                            <span class="badge bg-primary fs-6">Student</span>
-                        @endif
+                        @php
+                            $roleBadges = [
+                                'admin' => 'bg-danger',
+                                'teacher' => 'bg-info',
+                                'staff' => 'bg-warning text-dark',
+                                'student' => 'bg-primary',
+                            ];
+                            $badgeClass = $roleBadges[$user->role] ?? 'bg-secondary';
+                        @endphp
+                        <span class="badge {{ $badgeClass }} fs-6">{{ ucwords(str_replace('_', ' ', $user->role)) }}</span>
                         
                         @if($user->status)
                             <span class="badge bg-success fs-6 ms-2">Active</span>

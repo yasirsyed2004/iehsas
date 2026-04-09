@@ -28,7 +28,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // All authenticated users go to staff panel (serves as user dashboard)
+        return redirect()->intended(route('staff.dashboard', absolute: false));
     }
 
     /**

@@ -23,6 +23,9 @@
                     </ol>
                 </nav>
             </div>
+            <a href="{{ route('admin.roles.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Create New Role
+            </a>
         </div>
 
         <!-- Alert Messages -->
@@ -32,7 +35,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
-
         @if(session('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
@@ -40,18 +42,10 @@
             </div>
         @endif
 
-        <!-- Info Card -->
-        <div class="alert alert-info mb-4">
-            <i class="fas fa-info-circle me-2"></i>
-            Manage what each admin role can access. <strong>Super Admin</strong> always has full access and cannot be restricted.
-        </div>
-
         <!-- Roles Table -->
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-shield-alt me-2"></i>Admin Roles
-                </h5>
+                <h5 class="card-title mb-0"><i class="fas fa-shield-alt me-2"></i>Admin Roles</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -60,6 +54,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Role Name</th>
+                                <th>Type</th>
                                 <th>Permissions</th>
                                 <th>Admins</th>
                                 <th>Actions</th>
@@ -70,41 +65,143 @@
                             <tr>
                                 <td>{{ $index + 1 }}</td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        @if($role->name === 'super_admin')
-                                            <span class="badge bg-danger me-2"><i class="fas fa-crown me-1"></i>Super Admin</span>
-                                        @elseif($role->name === 'admin')
-                                            <span class="badge bg-primary me-2"><i class="fas fa-user-shield me-1"></i>Admin</span>
-                                        @elseif($role->name === 'moderator')
-                                            <span class="badge bg-warning text-dark me-2"><i class="fas fa-user-tag me-1"></i>Moderator</span>
-                                        @else
-                                            <span class="badge bg-secondary me-2">{{ ucfirst(str_replace('_', ' ', $role->name)) }}</span>
-                                        @endif
-                                    </div>
+                                    @if($role->name === 'super_admin')
+                                        <span class="badge bg-danger"><i class="fas fa-crown me-1"></i>Super Admin</span>
+                                    @elseif($role->name === 'admin')
+                                        <span class="badge bg-primary"><i class="fas fa-user-shield me-1"></i>Admin</span>
+                                    @elseif($role->name === 'moderator')
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-user-tag me-1"></i>Moderator</span>
+                                    @else
+                                        <span class="badge bg-info"><i class="fas fa-user-cog me-1"></i>{{ ucwords(str_replace('_', ' ', $role->name)) }}</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if(in_array($role->name, ['super_admin', 'admin', 'moderator']))
+                                        <span class="badge bg-light text-dark"><i class="fas fa-lock me-1"></i>System</span>
+                                    @else
+                                        <span class="badge bg-light text-dark"><i class="fas fa-pencil-alt me-1"></i>Custom</span>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($role->name === 'super_admin')
-                                        <span class="text-success fw-bold">
-                                            <i class="fas fa-infinity me-1"></i>All ({{ $totalPermissions }})
-                                        </span>
+                                        <span class="text-success fw-bold"><i class="fas fa-infinity me-1"></i>All ({{ $totalPermissions }})</span>
                                     @else
                                         <span class="fw-bold">{{ $role->permissions_count }}</span>
                                         <small class="text-muted">/ {{ $totalPermissions }}</small>
                                     @endif
                                 </td>
                                 <td>
-                                    @php
-                                        $adminCount = \App\Models\Admin::where('role', $role->name)->count();
-                                    @endphp
+                                    @php $adminCount = \App\Models\Admin::where('role', $role->name)->count(); @endphp
                                     <span class="badge bg-light text-dark">{{ $adminCount }} admin(s)</span>
                                 </td>
                                 <td>
                                     @if($role->name === 'super_admin')
                                         <span class="text-muted"><i class="fas fa-lock me-1"></i>Non-editable</span>
                                     @else
-                                        <a href="{{ route('admin.roles.edit', $role) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-edit me-1"></i>Edit Permissions
+                                        <a href="{{ route('admin.roles.edit', $role) }}" class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="fas fa-edit"></i>
                                         </a>
+                                        @if(!in_array($role->name, ['super_admin']) && \App\Models\Admin::where('role', $role->name)->count() === 0)
+                                            <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="d-inline"
+                                                  onsubmit="return confirm('Are you sure you want to delete the {{ str_replace('_', ' ', $role->name) }} role?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Account Management Section -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-users-cog me-2"></i>Admin Accounts</h5>
+                <a href="{{ route('admin.roles.admins.create') }}" class="btn btn-sm btn-success">
+                    <i class="fas fa-user-plus me-1"></i>Add Admin
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Create admin accounts and assign roles. Each admin will only see modules they have permission for.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Admin</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($admins as $admin)
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                                             style="width: 36px; height: 36px; font-size: 14px;">
+                                            {{ strtoupper(substr($admin->name, 0, 1)) }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ $admin->name }}</strong>
+                                            @if($admin->phone)
+                                                <br><small class="text-muted">{{ $admin->phone }}</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ $admin->email }}</td>
+                                <td>
+                                    <form action="{{ route('admin.roles.assign-role', $admin) }}" method="POST">
+                                        @csrf
+                                        <select name="role" class="form-select form-select-sm" style="width: 170px;"
+                                                onchange="this.form.submit()"
+                                                {{ ($admin->role === 'super_admin' && auth('admin')->user()->role !== 'super_admin') ? 'disabled' : '' }}>
+                                            @foreach($allRoles as $role)
+                                                <option value="{{ $role->name }}" {{ $admin->role === $role->name ? 'selected' : '' }}>
+                                                    {{ ucwords(str_replace('_', ' ', $role->name)) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                </td>
+                                <td>
+                                    @if($admin->id !== auth('admin')->id())
+                                        <form action="{{ route('admin.roles.admins.toggle-status', $admin) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <span class="badge {{ $admin->status ? 'bg-success' : 'bg-secondary' }}" style="cursor:pointer; font-size: 0.8rem;" onclick="this.closest('form').submit()">
+                                                {{ $admin->status ? 'Active' : 'Inactive' }}
+                                            </span>
+                                        </form>
+                                    @else
+                                        <span class="badge bg-success" style="font-size: 0.8rem;">Active (You)</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <a href="{{ route('admin.roles.admins.edit', $admin) }}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    @if($admin->id !== auth('admin')->id())
+                                        <form action="{{ route('admin.roles.admins.destroy', $admin) }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('Delete admin account {{ $admin->name }}?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     @endif
                                 </td>
                             </tr>
@@ -120,9 +217,7 @@
     <script>
         setTimeout(() => {
             document.querySelectorAll('.alert-dismissible').forEach(alert => {
-                if (alert.classList.contains('show')) {
-                    new bootstrap.Alert(alert).close();
-                }
+                if (alert.classList.contains('show')) new bootstrap.Alert(alert).close();
             });
         }, 5000);
     </script>

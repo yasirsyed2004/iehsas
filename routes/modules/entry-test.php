@@ -24,7 +24,8 @@ Route::prefix('entry-test')->name('entry-test.')->group(function () {
     Route::post('attempt/{attempt}/answer', [EntryTestController::class, 'submitAnswer'])->name('submit-answer');
     Route::post('attempt/{attempt}/submit', [EntryTestController::class, 'submit'])->name('submit');
     Route::post('attempt/{attempt}/violation', [EntryTestController::class, 'trackViolation'])->name('track-violation');
-    
+    Route::post('attempt/{attempt}/screenshot', [EntryTestController::class, 'storeScreenshot'])->name('store-screenshot');
+
     // Results
     Route::get('result/{attempt}', [EntryTestController::class, 'result'])->name('result');
 });

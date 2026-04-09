@@ -251,7 +251,7 @@
                     </div>
 
                     <!-- Registration Form -->
-                    <form action="{{ route('entry-test.register.submit') }}" method="POST" id="registrationForm">
+                    <form action="{{ route('entry-test.register.submit') }}" method="POST" id="registrationForm" enctype="multipart/form-data">
                         @csrf
                         
                         <!-- Error Messages -->
@@ -490,16 +490,78 @@
                                 <label class="block text-sm font-bold text-gray-700 mb-2">
                                     <i class="fas fa-graduation-cap mr-1"></i>Qualification <span class="text-red-500">*</span>
                                 </label>
-                                <input type="text" 
-                                       name="qualification" 
-                                       value="{{ old('qualification') }}"
-                                       class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('qualification') border-red-500 @enderror"
-                                       placeholder="e.g., Bachelor's, Master's, Intermediate"
-                                       required>
+                                <select name="qualification"
+                                        id="qualificationSelect"
+                                        class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('qualification') border-red-500 @enderror"
+                                        required>
+                                    <option value="">Select Qualification</option>
+                                    @foreach(\App\Models\Student::QUALIFICATIONS as $value => $label)
+                                        <option value="{{ $value }}" {{ old('qualification') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endforeach
+                                </select>
                                 @error('qualification')
                                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                                 @enderror
+                                <!-- Other qualification text input -->
+                                <div id="qualificationOtherContainer" style="display: {{ old('qualification') == 'other' ? 'block' : 'none' }};" class="mt-2">
+                                    <input type="text"
+                                           name="qualification_other"
+                                           id="qualificationOtherInput"
+                                           value="{{ old('qualification_other') }}"
+                                           placeholder="Please specify your qualification/program name"
+                                           class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('qualification_other') border-red-500 @enderror"
+                                           maxlength="255">
+                                    @error('qualification_other')
+                                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- Session Mode Selection (Full Width) -->
+                        <div class="mt-6">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-chalkboard-teacher mr-1"></i>Session Mode <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="session-mode-card border-2 rounded-xl p-4 cursor-pointer text-center transition-all duration-300 {{ old('session_mode') == 'online' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300' }}" id="sessionOnlineCard">
+                                    <input type="radio" name="session_mode" value="online" class="hidden session-mode-radio"
+                                           {{ old('session_mode') == 'online' ? 'checked' : '' }}>
+                                    <i class="fas fa-laptop text-3xl mb-2 text-blue-500"></i>
+                                    <div class="font-semibold text-gray-800">Online Session</div>
+                                    <div class="text-xs text-gray-500 mt-1">Remote learning</div>
+                                </label>
+                                <label class="session-mode-card border-2 rounded-xl p-4 cursor-pointer text-center transition-all duration-300 {{ old('session_mode') == 'physical' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300' }}" id="sessionPhysicalCard">
+                                    <input type="radio" name="session_mode" value="physical" class="hidden session-mode-radio"
+                                           {{ old('session_mode') == 'physical' ? 'checked' : '' }}>
+                                    <i class="fas fa-school text-3xl mb-2 text-green-500"></i>
+                                    <div class="font-semibold text-gray-800">Physical Session</div>
+                                    <div class="text-xs text-gray-500 mt-1">Classroom learning</div>
+                                </label>
+                            </div>
+                            @error('session_mode')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Eligibility Proof Upload (Conditional) -->
+                        <div id="eligibilityProofSection" style="display: none;" class="mt-6">
+                            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl mb-4">
+                                <div class="flex">
+                                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                                    <p id="eligibilityMessage" class="text-yellow-700 font-semibold text-sm"></p>
+                                </div>
+                            </div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-file-upload mr-1"></i><span id="proofLabel">Upload Proof</span> <span class="text-red-500">*</span>
+                            </label>
+                            <input type="file" name="eligibility_proof" id="eligibilityProofInput"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('eligibility_proof') border-red-500 @enderror">
+                            <p class="text-xs text-gray-500 mt-1">Accepted formats: PDF, JPG, PNG. Maximum size: 5MB</p>
+                            @error('eligibility_proof')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <!-- Home Address (Full Width) -->
@@ -820,6 +882,86 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize on page load (for old input)
     updateSelectedCourses();
+});
+
+// Qualification & Session Mode Eligibility Logic
+document.addEventListener('DOMContentLoaded', function() {
+    const qualificationSelect = document.getElementById('qualificationSelect');
+    const qualificationOtherContainer = document.getElementById('qualificationOtherContainer');
+    const qualificationOtherInput = document.getElementById('qualificationOtherInput');
+    const sessionModeRadios = document.querySelectorAll('.session-mode-radio');
+    const sessionCards = document.querySelectorAll('.session-mode-card');
+    const eligibilityProofSection = document.getElementById('eligibilityProofSection');
+    const eligibilityMessage = document.getElementById('eligibilityMessage');
+    const proofLabel = document.getElementById('proofLabel');
+    const eligibilityProofInput = document.getElementById('eligibilityProofInput');
+
+    function updateEligibilityUI() {
+        const qualification = qualificationSelect ? qualificationSelect.value : '';
+        const sessionMode = document.querySelector('.session-mode-radio:checked');
+        const sessionValue = sessionMode ? sessionMode.value : '';
+
+        // Show/hide "Other" text field
+        if (qualificationOtherContainer) {
+            qualificationOtherContainer.style.display = qualification === 'other' ? 'block' : 'none';
+            if (qualification !== 'other' && qualificationOtherInput) {
+                qualificationOtherInput.value = '';
+            }
+        }
+
+        // Update session mode card styles
+        sessionCards.forEach(card => {
+            const radio = card.querySelector('.session-mode-radio');
+            if (radio && radio.checked) {
+                card.classList.add('border-blue-500', 'bg-blue-50');
+                card.classList.remove('border-gray-200');
+            } else {
+                card.classList.remove('border-blue-500', 'bg-blue-50');
+                card.classList.add('border-gray-200');
+            }
+        });
+
+        // Determine if proof is needed
+        let needsProof = false;
+        let message = '';
+        let label = '';
+
+        if (sessionValue === 'physical' && ['intermediate', 'other'].includes(qualification)) {
+            needsProof = true;
+            message = 'Physical session with your qualification level requires an IOSH or OSHA certificate to proceed.';
+            label = 'Upload IOSH/OSHA Certificate';
+        } else if (sessionValue === 'online' && ['intermediate', 'adp', 'other'].includes(qualification)) {
+            needsProof = true;
+            message = 'Online session with your qualification level requires proof of minimum 2 years HSE experience.';
+            label = 'Upload HSE Experience Proof';
+        }
+
+        if (eligibilityProofSection) {
+            eligibilityProofSection.style.display = needsProof ? 'block' : 'none';
+        }
+        if (eligibilityMessage) {
+            eligibilityMessage.textContent = message;
+        }
+        if (proofLabel) {
+            proofLabel.textContent = label || 'Upload Proof';
+        }
+        if (eligibilityProofInput) {
+            eligibilityProofInput.required = needsProof;
+            if (!needsProof) {
+                eligibilityProofInput.value = '';
+            }
+        }
+    }
+
+    if (qualificationSelect) {
+        qualificationSelect.addEventListener('change', updateEligibilityUI);
+    }
+    sessionModeRadios.forEach(radio => {
+        radio.addEventListener('change', updateEligibilityUI);
+    });
+
+    // Initialize on page load
+    updateEligibilityUI();
 });
     </script>
 </body>

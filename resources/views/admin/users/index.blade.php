@@ -76,10 +76,9 @@
                         <div class="col-md-3">
                             <select class="form-select" name="role">
                                 <option value="">All Roles</option>
-                                <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                                <option value="teacher" {{ request('role') == 'teacher' ? 'selected' : '' }}>Teacher</option>
-                                <option value="student" {{ request('role') == 'student' ? 'selected' : '' }}>Student</option>
-                                <option value="staff" {{ request('role') == 'staff' ? 'selected' : '' }}>Staff</option>
+                                @foreach($roles as $value => $label)
+                                    <option value="{{ $value }}" {{ request('role') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -145,8 +144,10 @@
                                         <span class="role-badge bg-info text-white">Teacher</span>
                                     @elseif($user->role == 'staff')
                                         <span class="role-badge bg-warning text-dark">Staff</span>
-                                    @else
+                                    @elseif($user->role == 'student')
                                         <span class="role-badge bg-primary text-white">Student</span>
+                                    @else
+                                        <span class="role-badge bg-secondary text-white">{{ ucwords(str_replace('_', ' ', $user->role)) }}</span>
                                     @endif
                                 </td>
                                 <td>{{ $user->student_id ?? '-' }}</td>

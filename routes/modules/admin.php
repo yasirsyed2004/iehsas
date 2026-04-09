@@ -28,9 +28,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Protected Admin Routes
     Route::middleware(['auth:admin'])->group(function () {
-        // Dashboard
-        Route::get('/', [DashboardController::class, 'index'])->name('dashboard')->middleware('can:view_dashboard');
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index')->middleware('can:view_dashboard');
+        // Dashboard (accessible to all authenticated admins — it's the landing page)
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
         // Authentication (no permission needed — all admins need these)
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
@@ -77,6 +77,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{attempt}/allow-retake', [StudentAttemptController::class, 'allowRetake'])->name('allow-retake')->middleware('can:manage_student_attempts');
             Route::delete('{attempt}', [StudentAttemptController::class, 'destroy'])->name('destroy')->middleware('can:manage_student_attempts');
         });
+
+        // Exam Screenshot Viewer (for admin)
+        Route::get('exam-screenshot/{screenshot}', function (\App\Models\ExamScreenshot $screenshot) {
+            $path = $screenshot->file_path;
+            if (!\Illuminate\Support\Facades\Storage::disk('enrollment')->exists($path)) {
+                abort(404);
+            }
+            return response(\Illuminate\Support\Facades\Storage::disk('enrollment')->get($path), 200, [
+                'Content-Type' => 'image/jpeg',
+                'Cache-Control' => 'private, max-age=3600',
+            ]);
+        })->name('exam-screenshot')->middleware('can:view_student_attempts');
 
         // Registered Students Management
         Route::prefix('registered-students')->name('registered-students.')->middleware('can:view_registered_students')->group(function () {
@@ -214,8 +226,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Roles & Permissions Management
         Route::prefix('roles')->name('roles.')->middleware('can:manage_roles_permissions')->group(function () {
             Route::get('/', [RolePermissionController::class, 'index'])->name('index');
+            Route::get('create', [RolePermissionController::class, 'create'])->name('create');
+            Route::post('/', [RolePermissionController::class, 'store'])->name('store');
             Route::get('{role}/edit', [RolePermissionController::class, 'edit'])->name('edit');
             Route::put('{role}', [RolePermissionController::class, 'update'])->name('update');
+            Route::delete('{role}', [RolePermissionController::class, 'destroy'])->name('destroy');
+            Route::post('assign-role/{admin}', [RolePermissionController::class, 'assignRole'])->name('assign-role');
+
+            // Admin Account Management
+            Route::get('admins/create', [RolePermissionController::class, 'createAdmin'])->name('admins.create');
+            Route::post('admins', [RolePermissionController::class, 'storeAdmin'])->name('admins.store');
+            Route::get('admins/{admin}/edit', [RolePermissionController::class, 'editAdmin'])->name('admins.edit');
+            Route::put('admins/{admin}', [RolePermissionController::class, 'updateAdmin'])->name('admins.update');
+            Route::delete('admins/{admin}', [RolePermissionController::class, 'destroyAdmin'])->name('admins.destroy');
+            Route::post('admins/{admin}/toggle-status', [RolePermissionController::class, 'toggleAdminStatus'])->name('admins.toggle-status');
         });
     });
 });

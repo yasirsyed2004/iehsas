@@ -12,11 +12,20 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return redirect()->route('admin.login');
+    // If logged in as admin guard, go to admin dashboard
+    if (auth('admin')->check()) {
+        return redirect()->route('admin.dashboard');
+    }
+    // If logged in as web user, redirect to staff dashboard
+    if (auth()->check()) {
+        return redirect()->route('staff.dashboard');
+    }
+    // Not logged in, go to user login
+    return redirect()->route('login');
 })->name('home');
 
 Route::get('/home', function () {
-    return redirect()->route('admin.login');
+    return redirect('/');
 });
 
 // Include modular routes

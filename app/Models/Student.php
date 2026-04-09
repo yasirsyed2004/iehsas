@@ -13,23 +13,51 @@ class Student extends Model
 {
     use HasFactory;
 
+    // Qualification constants
+    const QUALIFICATION_INTERMEDIATE = 'intermediate';
+    const QUALIFICATION_ADP = 'adp';
+    const QUALIFICATION_BS_16 = 'bs_16';
+    const QUALIFICATION_MS = 'ms';
+    const QUALIFICATION_PHD = 'phd';
+    const QUALIFICATION_OTHER = 'other';
+
+    const QUALIFICATIONS = [
+        self::QUALIFICATION_INTERMEDIATE => 'Intermediate',
+        self::QUALIFICATION_ADP => 'ADP',
+        self::QUALIFICATION_BS_16 => 'BS (16 Years)',
+        self::QUALIFICATION_MS => 'MS',
+        self::QUALIFICATION_PHD => 'PhD',
+        self::QUALIFICATION_OTHER => 'Other (specify)',
+    ];
+
+    // Session mode constants
+    const SESSION_ONLINE = 'online';
+    const SESSION_PHYSICAL = 'physical';
+
+    const SESSION_MODES = [
+        self::SESSION_ONLINE => 'Online Session',
+        self::SESSION_PHYSICAL => 'Physical (Classroom) Session',
+    ];
+
     protected $fillable = [
         'full_name',
-        'father_name',          // NEW
+        'father_name',
         'email',
         'contact_number',
-        'date_of_birth',        // NEW
-        'id_type',              // REPLACES cnic
-        'id_number',            // REPLACES cnic value
-        'nationality',          // NEW
+        'date_of_birth',
+        'id_type',
+        'id_number',
+        'nationality',
         'gender',
         'qualification',
-        'home_address',         // NEW
+        'session_mode',
+        'qualification_other',
+        'home_address',
         'is_retake_allowed',
-        'enrollment_verification_code',     // Phase 2
-        'enrollment_code_generated_at',     // Phase 2
-        'enrollment_code_used',            // Phase 2
-        'enrollment_form_submitted'        // Phase 2
+        'enrollment_verification_code',
+        'enrollment_code_generated_at',
+        'enrollment_code_used',
+        'enrollment_form_submitted',
     ];
 
     protected $casts = [
@@ -160,11 +188,119 @@ $expiryTime = $this->enrollment_code_generated_at->copy()->addHours($expiryHours
     }
 
     /**
+     * Get qualification display label (handles both dropdown values and legacy free-text)
+     */
+    public function getQualificationLabelAttribute(): string
+    {
+        if (isset(self::QUALIFICATIONS[$this->qualification])) {
+            $label = self::QUALIFICATIONS[$this->qualification];
+            if ($this->qualification === self::QUALIFICATION_OTHER && $this->qualification_other) {
+                return $label . ': ' . $this->qualification_other;
+            }
+            return $label;
+        }
+        return $this->qualification ?? '';
+    }
+
+    /**
+     * Get session mode display label
+     */
+    public function getSessionModeLabelAttribute(): string
+    {
+        return self::SESSION_MODES[$this->session_mode] ?? ucfirst($this->session_mode ?? 'Not specified');
+    }
+
+    /**
+     * Check if eligibility proof upload is required
+     */
+    public function requiresEligibilityProof(): bool
+    {
+        if (!$this->session_mode) {
+            return false;
+        }
+
+        if ($this->session_mode === self::SESSION_PHYSICAL) {
+            return in_array($this->qualification, [
+                self::QUALIFICATION_INTERMEDIATE,
+                self::QUALIFICATION_OTHER,
+            ]);
+        }
+
+        if ($this->session_mode === self::SESSION_ONLINE) {
+            return in_array($this->qualification, [
+                self::QUALIFICATION_INTERMEDIATE,
+                self::QUALIFICATION_ADP,
+                self::QUALIFICATION_OTHER,
+            ]);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the required proof document type and sub_type
+     */
+    public function getRequiredProofType(): ?array
+    {
+        if ($this->session_mode === self::SESSION_PHYSICAL) {
+            if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_OTHER])) {
+                return ['document_type' => 'education', 'sub_type' => 'iosh_osha_certificate'];
+            }
+        }
+
+        if ($this->session_mode === self::SESSION_ONLINE) {
+            if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_ADP, self::QUALIFICATION_OTHER])) {
+                return ['document_type' => 'cv', 'sub_type' => 'hse_experience_proof'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if the required eligibility proof has been uploaded
+     */
+    public function hasRequiredEligibilityProof(): bool
+    {
+        if (!$this->requiresEligibilityProof()) {
+            return true;
+        }
+
+        $proofType = $this->getRequiredProofType();
+        return $this->enrollmentDocuments()
+            ->where('document_type', $proofType['document_type'])
+            ->where('sub_type', $proofType['sub_type'])
+            ->exists();
+    }
+
+    /**
+     * Get human-readable eligibility message
+     */
+    public function getEligibilityMessage(): ?string
+    {
+        if ($this->session_mode === self::SESSION_PHYSICAL) {
+            if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_OTHER])) {
+                return 'Physical session with Intermediate/Other qualification requires an IOSH or OSHA certificate. Please upload your certificate to proceed.';
+            }
+        }
+
+        if ($this->session_mode === self::SESSION_ONLINE) {
+            if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_ADP, self::QUALIFICATION_OTHER])) {
+                return 'Online session with Intermediate/ADP/Other qualification requires proof of minimum 2 years HSE experience. Please upload your experience proof to proceed.';
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Check if student is eligible for enrollment
      */
     public function isEligibleForEnrollment(): bool
     {
-        return $this->hasPassedEntryTest() && !$this->enrollment_form_submitted;
+        return $this->hasPassedEntryTest()
+            && !$this->enrollment_form_submitted
+            && $this->hasRequiredEligibilityProof();
     }
 
     /**

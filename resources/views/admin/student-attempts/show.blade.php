@@ -538,21 +538,28 @@
                 <!-- System Information -->
                 <div class="info-card">
                     <h5 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>System Info</h5>
-                    
+
                     <div class="mb-2">
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">Attempt ID:</span>
                             <span class="fw-bold">#{{ $attempt->id }}</span>
                         </div>
                     </div>
-                    
+
                     <div class="mb-2">
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">Status:</span>
-                            <span class="badge bg-primary">{{ ucfirst($attempt->status) }}</span>
+                            <span class="badge {{ $attempt->status === 'disqualified' ? 'bg-danger' : 'bg-primary' }}">{{ ucfirst($attempt->status) }}</span>
                         </div>
                     </div>
-                    
+
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Tab Switches:</span>
+                            <span class="badge {{ ($attempt->browser_switches ?? 0) > 0 ? 'bg-danger' : 'bg-success' }}">{{ $attempt->browser_switches ?? 0 }}</span>
+                        </div>
+                    </div>
+
                     @if($attempt->proctoring_violations)
                         <div class="mb-2">
                             <div class="d-flex justify-content-between">
@@ -561,7 +568,7 @@
                             </div>
                         </div>
                     @endif
-                    
+
                     <div class="mb-2">
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">Created:</span>
@@ -569,6 +576,63 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Proctoring Violations Detail -->
+                @if($attempt->proctoring_violations && count($attempt->proctoring_violations) > 0)
+                <div class="info-card">
+                    <h5 class="text-danger mb-3"><i class="fas fa-shield-alt me-2"></i>Proctoring Violations</h5>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        @foreach($attempt->proctoring_violations as $violation)
+                            <div class="d-flex align-items-start mb-2 p-2 border rounded">
+                                <span class="badge bg-{{ in_array($violation['type'] ?? '', ['tab_switch', 'tab_switch_disqualified', 'multiple_faces', 'face_not_detected']) ? 'danger' : 'warning' }} me-2" style="font-size: 0.7rem; white-space: nowrap;">
+                                    {{ str_replace('_', ' ', ucfirst($violation['type'] ?? 'unknown')) }}
+                                </span>
+                                <div class="flex-grow-1">
+                                    <small class="text-muted d-block">{{ $violation['details'] ?? '' }}</small>
+                                    <small class="text-muted">{{ isset($violation['timestamp']) ? \Carbon\Carbon::parse($violation['timestamp'])->format('g:i:s A') : '' }}</small>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <!-- Exam Screenshots -->
+                @if($attempt->screenshots && $attempt->screenshots->count() > 0)
+                <div class="info-card">
+                    <h5 class="text-primary mb-3"><i class="fas fa-camera me-2"></i>Exam Screenshots ({{ $attempt->screenshots->count() }})</h5>
+                    <div class="row g-2" style="max-height: 400px; overflow-y: auto;">
+                        @foreach($attempt->screenshots as $screenshot)
+                            <div class="col-6">
+                                <div class="border rounded overflow-hidden cursor-pointer" data-bs-toggle="modal" data-bs-target="#screenshotModal{{ $screenshot->id }}">
+                                    <img src="{{ route('admin.exam-screenshot', $screenshot->id) }}"
+                                         alt="Screenshot"
+                                         class="w-100"
+                                         style="height: 80px; object-fit: cover;">
+                                    <div class="p-1 text-center bg-light">
+                                        <small class="text-muted">{{ $screenshot->captured_at->format('g:i:s A') }}</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Screenshot Modal -->
+                            <div class="modal fade" id="screenshotModal{{ $screenshot->id }}" tabindex="-1">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h6 class="modal-title">Screenshot - {{ $screenshot->captured_at->format('M j, Y g:i:s A') }}</h6>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body p-0">
+                                            <img src="{{ route('admin.exam-screenshot', $screenshot->id) }}" alt="Screenshot" class="w-100">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>

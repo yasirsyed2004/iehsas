@@ -7,9 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Models\EntryTest;
 use App\Models\EntryTestAttempt;
 use App\Models\EntryTestAnswer;
+use App\Models\ExamScreenshot;
+use App\Models\Notification;
 use App\Models\Student;
+use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class EntryTestController extends Controller
 {
@@ -48,7 +52,10 @@ class EntryTestController extends Controller
                 ->with('error', 'You have already attempted the test. Contact admin for retake permission.');
         }
 
-        return view('entry-test.instructions', compact('entryTest', 'student'));
+        // Check eligibility proof
+        $canStartTest = !$student->requiresEligibilityProof() || $student->hasRequiredEligibilityProof();
+
+        return view('entry-test.instructions', compact('entryTest', 'student', 'canStartTest'));
     }
 
     public function start($id)
@@ -62,7 +69,13 @@ class EntryTestController extends Controller
     }
 
     $student = Student::findOrFail($studentId);
-    
+
+    // Check eligibility proof before allowing test start
+    if ($student->requiresEligibilityProof() && !$student->hasRequiredEligibilityProof()) {
+        return redirect()->route('entry-test.instructions', $entryTest->id)
+            ->with('error', 'You must upload the required eligibility proof before starting the test.');
+    }
+
     // Check if student already has an active attempt
     $existingAttempt = EntryTestAttempt::where('student_id', $student->id)
         ->where('entry_test_id', $id)
@@ -187,7 +200,7 @@ class EntryTestController extends Controller
     {
         $attempt = EntryTestAttempt::findOrFail($attemptId);
         $studentId = session('registered_student_id');
-        
+
         if (!$studentId || $attempt->student_id !== $studentId) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
@@ -199,7 +212,71 @@ class EntryTestController extends Controller
             'timestamp' => now()->toISOString()
         ];
 
-        $attempt->update(['proctoring_violations' => $violations]);
+        $updateData = ['proctoring_violations' => $violations];
+
+        // Track tab switches separately
+        if (in_array($request->type, ['tab_switch', 'tab_switch_disqualified'])) {
+            $updateData['browser_switches'] = ($attempt->browser_switches ?? 0) + 1;
+        }
+
+        // Auto-disqualify on 2nd tab switch
+        if ($request->type === 'tab_switch_disqualified') {
+            $updateData['status'] = 'disqualified';
+
+            // Notify all active admins
+            $admins = Admin::where('status', true)->get();
+            $student = Student::find($attempt->student_id);
+            $studentName = $student ? $student->full_name : 'Unknown Student';
+
+            foreach ($admins as $admin) {
+                Notification::createForAdmin(
+                    $admin->id,
+                    'exam_disqualified',
+                    'Exam Disqualification',
+                    "{$studentName} was automatically disqualified from the entry test due to repeated tab switching.",
+                    ['attempt_id' => $attempt->id, 'student_id' => $attempt->student_id]
+                );
+            }
+        }
+
+        $attempt->update($updateData);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function storeScreenshot(Request $request, $attemptId)
+    {
+        $attempt = EntryTestAttempt::findOrFail($attemptId);
+        $studentId = session('registered_student_id');
+
+        if (!$studentId || $attempt->student_id !== $studentId) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $imageData = $request->input('image');
+        if (!$imageData || !str_starts_with($imageData, 'data:image/')) {
+            return response()->json(['error' => 'Invalid image data'], 422);
+        }
+
+        // Decode base64 image
+        $imageData = preg_replace('/^data:image\/\w+;base64,/', '', $imageData);
+        $imageContent = base64_decode($imageData);
+
+        if (!$imageContent) {
+            return response()->json(['error' => 'Failed to decode image'], 422);
+        }
+
+        $filename = 'screenshot_' . $attemptId . '_' . time() . '_' . mt_rand(1000, 9999) . '.jpg';
+        $filePath = 'exam-screenshots/' . $attemptId . '/' . $filename;
+
+        Storage::disk('enrollment')->put($filePath, $imageContent);
+
+        ExamScreenshot::create([
+            'entry_test_attempt_id' => $attemptId,
+            'file_path' => $filePath,
+            'file_size' => strlen($imageContent),
+            'captured_at' => now(),
+        ]);
 
         return response()->json(['success' => true]);
     }

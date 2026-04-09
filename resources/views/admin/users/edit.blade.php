@@ -119,10 +119,9 @@
                                 <select class="form-select @error('role') is-invalid @enderror" 
                                         name="role" required onchange="toggleStudentFields()">
                                     <option value="">Select Role</option>
-                                    <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin</option>
-                                    <option value="teacher" {{ old('role', $user->role) == 'teacher' ? 'selected' : '' }}>Teacher</option>
-                                    <option value="student" {{ old('role', $user->role) == 'student' ? 'selected' : '' }}>Student</option>
-                                    <option value="staff" {{ old('role', $user->role) == 'staff' ? 'selected' : '' }}>Staff</option>
+                                    @foreach($roles as $value => $label)
+                                        <option value="{{ $value }}" {{ old('role', $user->role) == $value ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endforeach
                                 </select>
                                 @error('role')
                                     <div class="invalid-feedback">{{ $message }}</div>

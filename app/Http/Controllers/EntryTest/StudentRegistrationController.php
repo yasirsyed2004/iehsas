@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StudentRegistrationRequest;
 use App\Models\Student;
 use App\Models\EntryTest;
+use App\Models\EnrollmentDocument;
 use App\Models\Course;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 class StudentRegistrationController extends Controller
 {
@@ -85,8 +87,13 @@ class StudentRegistrationController extends Controller
             $student->selectedCourses()->attach($selectedCourseIds, [
                 'selected_at' => now()
             ]);
-            
+
             $message = 'Registration successful! Please review the test instructions.';
+        }
+
+        // Handle eligibility proof upload
+        if ($request->hasFile('eligibility_proof')) {
+            $this->storeEligibilityProof($student, $request->file('eligibility_proof'));
         }
         
         // Store student ID in session for test flow
@@ -115,8 +122,10 @@ class StudentRegistrationController extends Controller
             'nationality' => $data['nationality'],
             'gender' => $data['gender'],
             'qualification' => $data['qualification'],
+            'qualification_other' => $data['qualification_other'] ?? null,
+            'session_mode' => $data['session_mode'],
             'home_address' => $data['home_address'],
-            'is_retake_allowed' => false // Default to false for new students
+            'is_retake_allowed' => false,
         ]);
     }
 
@@ -134,11 +143,55 @@ class StudentRegistrationController extends Controller
             'nationality' => $data['nationality'],
             'gender' => $data['gender'],
             'qualification' => $data['qualification'],
-            'home_address' => $data['home_address']
+            'qualification_other' => $data['qualification_other'] ?? null,
+            'session_mode' => $data['session_mode'],
+            'home_address' => $data['home_address'],
             // Note: We don't update id_type, id_number, or is_retake_allowed
         ]);
-        
-        return $student->fresh(); // Return fresh instance
+
+        return $student->fresh();
+    }
+
+    /**
+     * Store eligibility proof document
+     */
+    protected function storeEligibilityProof(Student $student, UploadedFile $file): void
+    {
+        $proofType = $student->getRequiredProofType();
+        if (!$proofType) {
+            return;
+        }
+
+        $storedFilename = 'eligibility_' . $student->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $filePath = $file->storeAs(
+            'eligibility-proofs/' . $student->id,
+            $storedFilename,
+            'enrollment'
+        );
+
+        // Delete existing proof of same type if re-registering
+        $existing = $student->enrollmentDocuments()
+            ->where('document_type', $proofType['document_type'])
+            ->where('sub_type', $proofType['sub_type'])
+            ->first();
+
+        if ($existing) {
+            \Illuminate\Support\Facades\Storage::disk('enrollment')->delete($existing->file_path);
+            $existing->delete();
+        }
+
+        EnrollmentDocument::create([
+            'student_id' => $student->id,
+            'document_type' => $proofType['document_type'],
+            'sub_type' => $proofType['sub_type'],
+            'original_filename' => $file->getClientOriginalName(),
+            'stored_filename' => $storedFilename,
+            'file_path' => $filePath,
+            'file_size' => $file->getSize(),
+            'mime_type' => $file->getMimeType(),
+            'status' => 'pending',
+            'uploaded_at' => now(),
+        ]);
     }
 
     /**

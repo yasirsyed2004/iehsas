@@ -9,9 +9,23 @@ use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    /**
+     * Get available roles for User model (staff panel users only)
+     */
+    private function getAvailableRoles(): array
+    {
+        return [
+            'admin' => 'Admin',
+            'teacher' => 'Teacher',
+            'student' => 'Student',
+            'staff' => 'Staff',
+        ];
+    }
+
     public function index(Request $request)
     {
         $query = User::query();
@@ -34,16 +48,18 @@ class UserController extends Controller
         }
 
         $users = $query->orderBy('created_at', 'desc')->paginate(15);
-        
-        return view('admin.users.index', compact('users'));
+        $roles = $this->getAvailableRoles();
+
+        return view('admin.users.index', compact('users', 'roles'));
     }
 
     public function create()
     {
         $departments = Department::active()->orderBy('name')->get();
         $admins = Admin::where('status', true)->orderBy('name')->get();
+        $roles = $this->getAvailableRoles();
 
-        return view('admin.users.create', compact('departments', 'admins'));
+        return view('admin.users.create', compact('departments', 'admins', 'roles'));
     }
 
     public function store(Request $request)
@@ -52,7 +68,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => 'required|in:admin,teacher,student,staff',
+            'role' => 'required|string|max:50',
             'phone' => 'nullable|string|max:20',
             'student_id' => 'nullable|string|max:50|unique:users,student_id',
             'date_of_birth' => 'nullable|date|before:today',
@@ -88,8 +104,9 @@ class UserController extends Controller
     {
         $departments = Department::active()->orderBy('name')->get();
         $admins = Admin::where('status', true)->orderBy('name')->get();
+        $roles = $this->getAvailableRoles();
 
-        return view('admin.users.edit', compact('user', 'departments', 'admins'));
+        return view('admin.users.edit', compact('user', 'departments', 'admins', 'roles'));
     }
 
     public function update(Request $request, User $user)
@@ -98,7 +115,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Password::defaults()],
-            'role' => 'required|in:admin,teacher,student,staff',
+            'role' => 'required|string|max:50',
             'phone' => 'nullable|string|max:20',
             'student_id' => 'nullable|string|max:50|unique:users,student_id,' . $user->id,
             'date_of_birth' => 'nullable|date|before:today',

@@ -10,7 +10,7 @@ class AuthController extends Controller
 {
     public function showLoginForm()
     {
-        if (Auth::guard('web')->check() && Auth::guard('web')->user()->role === 'staff') {
+        if (Auth::guard('web')->check()) {
             return redirect()->route('staff.dashboard');
         }
 
@@ -26,11 +26,6 @@ class AuthController extends Controller
 
         if (Auth::guard('web')->attempt($credentials, $request->filled('remember'))) {
             $user = Auth::guard('web')->user();
-
-            if ($user->role !== 'staff') {
-                Auth::guard('web')->logout();
-                return back()->withErrors(['email' => 'Unauthorized. This login is for staff members only.'])->withInput();
-            }
 
             if (!$user->is_active) {
                 Auth::guard('web')->logout();
@@ -50,7 +45,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('staff.login');
+        return redirect()->route('login');
     }
 
     public function profile()

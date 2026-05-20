@@ -22,12 +22,43 @@ class Student extends Model
     const QUALIFICATION_OTHER = 'other';
 
     const QUALIFICATIONS = [
-        self::QUALIFICATION_INTERMEDIATE => 'Intermediate',
-        self::QUALIFICATION_ADP => 'ADP',
-        self::QUALIFICATION_BS_16 => 'BS (16 Years)',
-        self::QUALIFICATION_MS => 'MS',
+        self::QUALIFICATION_INTERMEDIATE => 'ICS/FSc/DAE (Intermediate)',
+        self::QUALIFICATION_ADP => 'BA/B.Com/BSc/ADP (14 Years)',
+        self::QUALIFICATION_BS_16 => 'BS/BE/BBA (16 Years)',
+        self::QUALIFICATION_MS => 'MS/MBA/MSc/MPhil',
         self::QUALIFICATION_PHD => 'PhD',
         self::QUALIFICATION_OTHER => 'Other (specify)',
+    ];
+
+    // Eligibility proof keys (sub_type values stored in enrollment_documents)
+    const PROOF_IOSH_OSHA = 'iosh_osha_certificate';
+    const PROOF_ENGLISH_LANGUAGE = 'english_language_course';
+    const PROOF_NEBOSH_HSA = 'nebosh_hsa_certificate';
+    const PROOF_SAFETY_OFFICER_L3 = 'safety_officer_level3_ohs';
+    const PROOF_HSE_EXPERIENCE = 'hse_experience_proof';
+
+    // Registry of all proof options with their document_type and display label
+    const PROOF_OPTIONS = [
+        self::PROOF_IOSH_OSHA => [
+            'document_type' => 'education',
+            'label' => 'IOSH + OSHA Certificate',
+        ],
+        self::PROOF_ENGLISH_LANGUAGE => [
+            'document_type' => 'education',
+            'label' => 'English Language Course Certificate',
+        ],
+        self::PROOF_NEBOSH_HSA => [
+            'document_type' => 'education',
+            'label' => 'NEBOSH HSA Certificate',
+        ],
+        self::PROOF_SAFETY_OFFICER_L3 => [
+            'document_type' => 'education',
+            'label' => 'Safety Officer Level 3 in OHS',
+        ],
+        self::PROOF_HSE_EXPERIENCE => [
+            'document_type' => 'cv',
+            'label' => '2 Years HSE Experience Proof',
+        ],
     ];
 
     // Session mode constants
@@ -211,66 +242,95 @@ $expiryTime = $this->enrollment_code_generated_at->copy()->addHours($expiryHours
     }
 
     /**
-     * Check if eligibility proof upload is required
+     * Get the proof option keys that are acceptable for this student's
+     * current session_mode + qualification combination.
+     *
+     * Physical + Intermediate/Other  -> ANY ONE of 5 options (4 certs OR 2yr exp)
+     * Online   + Intermediate/ADP/Other -> 2-year HSE experience proof
+     * Everything else (ADP+Physical, BS_16/MS/PhD any mode) -> none required
      */
-    public function requiresEligibilityProof(): bool
+    public function getAcceptedProofKeys(): array
     {
         if (!$this->session_mode) {
-            return false;
+            return [];
         }
 
-        if ($this->session_mode === self::SESSION_PHYSICAL) {
-            return in_array($this->qualification, [
-                self::QUALIFICATION_INTERMEDIATE,
-                self::QUALIFICATION_OTHER,
-            ]);
-        }
-
-        if ($this->session_mode === self::SESSION_ONLINE) {
-            return in_array($this->qualification, [
-                self::QUALIFICATION_INTERMEDIATE,
-                self::QUALIFICATION_ADP,
-                self::QUALIFICATION_OTHER,
-            ]);
-        }
-
-        return false;
-    }
-
-    /**
-     * Get the required proof document type and sub_type
-     */
-    public function getRequiredProofType(): ?array
-    {
         if ($this->session_mode === self::SESSION_PHYSICAL) {
             if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_OTHER])) {
-                return ['document_type' => 'education', 'sub_type' => 'iosh_osha_certificate'];
+                return [
+                    self::PROOF_IOSH_OSHA,
+                    self::PROOF_ENGLISH_LANGUAGE,
+                    self::PROOF_NEBOSH_HSA,
+                    self::PROOF_SAFETY_OFFICER_L3,
+                    self::PROOF_HSE_EXPERIENCE,
+                ];
             }
         }
 
         if ($this->session_mode === self::SESSION_ONLINE) {
             if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_ADP, self::QUALIFICATION_OTHER])) {
-                return ['document_type' => 'cv', 'sub_type' => 'hse_experience_proof'];
+                return [self::PROOF_HSE_EXPERIENCE];
             }
         }
 
-        return null;
+        return [];
     }
 
     /**
-     * Check if the required eligibility proof has been uploaded
+     * Check if eligibility proof upload is required
+     */
+    public function requiresEligibilityProof(): bool
+    {
+        return !empty($this->getAcceptedProofKeys());
+    }
+
+    /**
+     * Get the required proof document type and sub_type.
+     *
+     * Kept for backward compatibility. Returns the single applicable proof
+     * when only one option exists; returns null when multiple are accepted
+     * (caller must explicitly choose a proof key).
+     */
+    public function getRequiredProofType(): ?array
+    {
+        $keys = $this->getAcceptedProofKeys();
+
+        if (count($keys) !== 1) {
+            return null;
+        }
+
+        $key = $keys[0];
+        return [
+            'document_type' => self::PROOF_OPTIONS[$key]['document_type'],
+            'sub_type' => $key,
+        ];
+    }
+
+    /**
+     * Check if the required eligibility proof has been uploaded.
+     * Returns true if at least ONE of the accepted proof types exists.
      */
     public function hasRequiredEligibilityProof(): bool
     {
-        if (!$this->requiresEligibilityProof()) {
+        $keys = $this->getAcceptedProofKeys();
+
+        if (empty($keys)) {
             return true;
         }
 
-        $proofType = $this->getRequiredProofType();
-        return $this->enrollmentDocuments()
-            ->where('document_type', $proofType['document_type'])
-            ->where('sub_type', $proofType['sub_type'])
-            ->exists();
+        foreach ($keys as $key) {
+            $option = self::PROOF_OPTIONS[$key];
+            $exists = $this->enrollmentDocuments()
+                ->where('document_type', $option['document_type'])
+                ->where('sub_type', $key)
+                ->exists();
+
+            if ($exists) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -280,13 +340,13 @@ $expiryTime = $this->enrollment_code_generated_at->copy()->addHours($expiryHours
     {
         if ($this->session_mode === self::SESSION_PHYSICAL) {
             if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_OTHER])) {
-                return 'Physical session with Intermediate/Other qualification requires an IOSH or OSHA certificate. Please upload your certificate to proceed.';
+                return 'For Physical session with your qualification, please upload ONE of the following: IOSH+OSHA Certificate, English Language Course Certificate, NEBOSH HSA Certificate, Safety Officer Level 3 in OHS, OR proof of 2 years relevant HSE experience.';
             }
         }
 
         if ($this->session_mode === self::SESSION_ONLINE) {
             if (in_array($this->qualification, [self::QUALIFICATION_INTERMEDIATE, self::QUALIFICATION_ADP, self::QUALIFICATION_OTHER])) {
-                return 'Online session with Intermediate/ADP/Other qualification requires proof of minimum 2 years HSE experience. Please upload your experience proof to proceed.';
+                return 'For Online session with your qualification, please upload proof of minimum 2 years relevant HSE experience.';
             }
         }
 

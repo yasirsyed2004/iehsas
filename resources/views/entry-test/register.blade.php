@@ -552,6 +552,28 @@
                                     <p id="eligibilityMessage" class="text-yellow-700 font-semibold text-sm"></p>
                                 </div>
                             </div>
+
+                            {{-- Proof Type Selector (only shown when multiple proof options apply) --}}
+                            <div id="proofTypeSelectorContainer" style="display: none;" class="mb-4">
+                                <label class="block text-sm font-bold text-gray-700 mb-2">
+                                    <i class="fas fa-clipboard-check mr-1"></i>Select Certificate / Proof Type <span class="text-red-500">*</span>
+                                </label>
+                                <select name="eligibility_proof_type"
+                                        id="eligibilityProofTypeSelect"
+                                        class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('eligibility_proof_type') border-red-500 @enderror">
+                                    <option value="">Choose which proof you are uploading...</option>
+                                    @foreach(\App\Models\Student::PROOF_OPTIONS as $key => $opt)
+                                        <option value="{{ $key }}" {{ old('eligibility_proof_type') == $key ? 'selected' : '' }}>
+                                            {{ $opt['label'] }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">You only need to provide ONE of the options above.</p>
+                                @error('eligibility_proof_type')
+                                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
                             <label class="block text-sm font-bold text-gray-700 mb-2">
                                 <i class="fas fa-file-upload mr-1"></i><span id="proofLabel">Upload Proof</span> <span class="text-red-500">*</span>
                             </label>
@@ -895,6 +917,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const eligibilityMessage = document.getElementById('eligibilityMessage');
     const proofLabel = document.getElementById('proofLabel');
     const eligibilityProofInput = document.getElementById('eligibilityProofInput');
+    const proofTypeSelectorContainer = document.getElementById('proofTypeSelectorContainer');
+    const proofTypeSelect = document.getElementById('eligibilityProofTypeSelect');
+
+    // Label lookup for the file-input heading when only one proof type applies
+    const SINGLE_PROOF_LABELS = {
+        hse_experience_proof: 'Upload 2-Year HSE Experience Proof'
+    };
 
     function updateEligibilityUI() {
         const qualification = qualificationSelect ? qualificationSelect.value : '';
@@ -921,19 +950,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Determine if proof is needed
+        // Determine if proof is needed and what kind
+        // Multi-option = Physical + Intermediate/Other (user picks 1 of 5)
+        // Single-option = Online + Intermediate/ADP/Other (HSE experience only)
         let needsProof = false;
+        let multiOption = false;
+        let singleOptionKey = null;
         let message = '';
-        let label = '';
+        let label = 'Upload Proof';
 
         if (sessionValue === 'physical' && ['intermediate', 'other'].includes(qualification)) {
             needsProof = true;
-            message = 'Physical session with your qualification level requires an IOSH or OSHA certificate to proceed.';
-            label = 'Upload IOSH/OSHA Certificate';
+            multiOption = true;
+            message = 'For Physical session with your qualification, please upload ONE of: IOSH+OSHA Certificate, English Language Course Certificate, NEBOSH HSA Certificate, Safety Officer Level 3 in OHS, OR proof of 2 years relevant HSE experience.';
         } else if (sessionValue === 'online' && ['intermediate', 'adp', 'other'].includes(qualification)) {
             needsProof = true;
-            message = 'Online session with your qualification level requires proof of minimum 2 years HSE experience.';
-            label = 'Upload HSE Experience Proof';
+            multiOption = false;
+            singleOptionKey = 'hse_experience_proof';
+            message = 'For Online session with your qualification, please upload proof of minimum 2 years relevant HSE experience.';
+            label = SINGLE_PROOF_LABELS[singleOptionKey];
         }
 
         if (eligibilityProofSection) {
@@ -942,8 +977,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eligibilityMessage) {
             eligibilityMessage.textContent = message;
         }
+
+        // Toggle multi-option dropdown
+        if (proofTypeSelectorContainer) {
+            proofTypeSelectorContainer.style.display = multiOption ? 'block' : 'none';
+        }
+        if (proofTypeSelect) {
+            proofTypeSelect.required = multiOption;
+            if (!multiOption) {
+                proofTypeSelect.value = '';
+            }
+        }
+
+        // Update file-input label
         if (proofLabel) {
-            proofLabel.textContent = label || 'Upload Proof';
+            proofLabel.textContent = multiOption ? 'Upload Selected Certificate / Proof' : label;
         }
         if (eligibilityProofInput) {
             eligibilityProofInput.required = needsProof;

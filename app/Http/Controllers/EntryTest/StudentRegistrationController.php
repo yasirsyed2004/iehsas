@@ -91,9 +91,14 @@ class StudentRegistrationController extends Controller
             $message = 'Registration successful! Please review the test instructions.';
         }
 
-        // Handle eligibility proof upload
+        // Handle eligibility proof upload (proof_type is required for multi-option
+        // combinations and resolved automatically for single-option ones)
         if ($request->hasFile('eligibility_proof')) {
-            $this->storeEligibilityProof($student, $request->file('eligibility_proof'));
+            $this->storeEligibilityProof(
+                $student,
+                $request->file('eligibility_proof'),
+                $request->input('eligibility_proof_type')
+            );
         }
         
         // Store student ID in session for test flow
@@ -153,14 +158,32 @@ class StudentRegistrationController extends Controller
     }
 
     /**
-     * Store eligibility proof document
+     * Store eligibility proof document.
+     *
+     * Determines the correct document_type + sub_type based on the student's
+     * qualification + session_mode and the user-selected proof type (when
+     * multiple options are offered).
      */
-    protected function storeEligibilityProof(Student $student, UploadedFile $file): void
+    protected function storeEligibilityProof(Student $student, UploadedFile $file, ?string $selectedProofKey = null): void
     {
-        $proofType = $student->getRequiredProofType();
-        if (!$proofType) {
+        $acceptedKeys = $student->getAcceptedProofKeys();
+        if (empty($acceptedKeys)) {
             return;
         }
+
+        // Resolve which proof key applies for this upload
+        if (count($acceptedKeys) === 1) {
+            $proofKey = $acceptedKeys[0];
+        } else {
+            // Multi-option (Physical + Intermediate/Other) — user must specify
+            if (!$selectedProofKey || !in_array($selectedProofKey, $acceptedKeys, true)) {
+                return;
+            }
+            $proofKey = $selectedProofKey;
+        }
+
+        $option = Student::PROOF_OPTIONS[$proofKey];
+        $documentType = $option['document_type'];
 
         $storedFilename = 'eligibility_' . $student->id . '_' . time() . '.' . $file->getClientOriginalExtension();
         $filePath = $file->storeAs(
@@ -169,10 +192,10 @@ class StudentRegistrationController extends Controller
             'enrollment'
         );
 
-        // Delete existing proof of same type if re-registering
+        // Delete existing proof of same sub_type if re-registering
         $existing = $student->enrollmentDocuments()
-            ->where('document_type', $proofType['document_type'])
-            ->where('sub_type', $proofType['sub_type'])
+            ->where('document_type', $documentType)
+            ->where('sub_type', $proofKey)
             ->first();
 
         if ($existing) {
@@ -182,8 +205,8 @@ class StudentRegistrationController extends Controller
 
         EnrollmentDocument::create([
             'student_id' => $student->id,
-            'document_type' => $proofType['document_type'],
-            'sub_type' => $proofType['sub_type'],
+            'document_type' => $documentType,
+            'sub_type' => $proofKey,
             'original_filename' => $file->getClientOriginalName(),
             'stored_filename' => $storedFilename,
             'file_path' => $filePath,

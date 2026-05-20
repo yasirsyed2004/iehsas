@@ -58,11 +58,19 @@ class StudentRegistrationRequest extends FormRequest
 
             // Eligibility proof (conditionally required via withValidator)
             'eligibility_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'eligibility_proof_type' => 'nullable|string|in:' . implode(',', array_keys(Student::PROOF_OPTIONS)),
         ];
     }
 
     /**
-     * Add conditional validation for eligibility proof
+     * Add conditional validation for eligibility proof.
+     *
+     * For Physical + Intermediate/Other: user picks ONE of 5 proof types
+     * (4 certificates OR 2-year HSE experience). The selected `eligibility_proof_type`
+     * determines which sub_type to store.
+     *
+     * For Online + Intermediate/ADP/Other: only one option (HSE experience proof),
+     * so eligibility_proof_type is auto-resolved server-side.
      */
     public function withValidator($validator)
     {
@@ -70,39 +78,87 @@ class StudentRegistrationRequest extends FormRequest
             $qualification = $this->input('qualification');
             $sessionMode = $this->input('session_mode');
             $hasFile = $this->hasFile('eligibility_proof');
+            $selectedProofType = $this->input('eligibility_proof_type');
 
-            // Check if this is an existing student who already uploaded proof
+            // Resolve the existing student (for retake/re-registration scenarios)
+            $existingStudent = null;
             $idType = $this->input('id_type');
             $idNumber = $this->input('id_number');
-            $existingStudent = null;
-
             if ($idType && $idNumber) {
                 $cleanedId = $this->cleanIdNumber($idNumber, $idType);
                 $existingStudent = Student::where('id_type', $idType)->where('id_number', $cleanedId)->first();
             }
 
-            // Physical + Intermediate/Other requires IOSH/OSHA certificate
-            if ($sessionMode === 'physical' && in_array($qualification, ['intermediate', 'other'])) {
-                $hasExistingProof = $existingStudent && $existingStudent->enrollmentDocuments()
-                    ->where('document_type', 'education')
-                    ->where('sub_type', 'iosh_osha_certificate')
-                    ->exists();
+            // Build a temporary Student instance to derive acceptedKeys for the
+            // qualification+session being submitted (without persisting it).
+            $tempStudent = new Student([
+                'qualification' => $qualification,
+                'session_mode' => $sessionMode,
+            ]);
+            $acceptedKeys = $tempStudent->getAcceptedProofKeys();
 
-                if (!$hasFile && !$hasExistingProof) {
-                    $validator->errors()->add('eligibility_proof', 'IOSH/OSHA certificate is required for Physical session with your qualification level.');
-                }
+            if (empty($acceptedKeys)) {
+                return; // No proof required for this combination
             }
 
-            // Online + Intermediate/ADP/Other requires HSE experience proof
-            if ($sessionMode === 'online' && in_array($qualification, ['intermediate', 'adp', 'other'])) {
-                $hasExistingProof = $existingStudent && $existingStudent->enrollmentDocuments()
-                    ->where('document_type', 'cv')
-                    ->where('sub_type', 'hse_experience_proof')
-                    ->exists();
-
-                if (!$hasFile && !$hasExistingProof) {
-                    $validator->errors()->add('eligibility_proof', 'HSE experience proof (minimum 2 years) is required for Online session with your qualification level.');
+            $hasExistingAcceptedProof = function () use ($existingStudent, $acceptedKeys) {
+                if (!$existingStudent) {
+                    return false;
                 }
+                foreach ($acceptedKeys as $key) {
+                    $option = Student::PROOF_OPTIONS[$key];
+                    $exists = $existingStudent->enrollmentDocuments()
+                        ->where('document_type', $option['document_type'])
+                        ->where('sub_type', $key)
+                        ->exists();
+                    if ($exists) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            // Single-option case (e.g. Online + Intermediate/ADP/Other):
+            // proof_type auto-resolved; just need the file or existing proof.
+            if (count($acceptedKeys) === 1) {
+                if (!$hasFile && !$hasExistingAcceptedProof()) {
+                    $validator->errors()->add(
+                        'eligibility_proof',
+                        'HSE experience proof (minimum 2 years) is required for Online session with your qualification level.'
+                    );
+                }
+                return;
+            }
+
+            // Multi-option case (Physical + Intermediate/Other): require selection AND file
+            // (existing proof of the selected type is also accepted).
+            if (!$selectedProofType) {
+                $validator->errors()->add(
+                    'eligibility_proof_type',
+                    'Please select which certificate or proof you are uploading.'
+                );
+                return;
+            }
+
+            if (!in_array($selectedProofType, $acceptedKeys, true)) {
+                $validator->errors()->add(
+                    'eligibility_proof_type',
+                    'The selected proof type is not valid for your qualification and session mode.'
+                );
+                return;
+            }
+
+            $option = Student::PROOF_OPTIONS[$selectedProofType];
+            $hasExistingSelectedProof = $existingStudent && $existingStudent->enrollmentDocuments()
+                ->where('document_type', $option['document_type'])
+                ->where('sub_type', $selectedProofType)
+                ->exists();
+
+            if (!$hasFile && !$hasExistingSelectedProof) {
+                $validator->errors()->add(
+                    'eligibility_proof',
+                    'Please upload the selected certificate/proof file.'
+                );
             }
         });
     }
@@ -310,8 +366,8 @@ class StudentRegistrationRequest extends FormRequest
             }
         }
 
-        // Remove file from cleaned data (handled separately)
-        unset($validated['eligibility_proof']);
+        // Remove file and proof-type selector from cleaned data (handled separately)
+        unset($validated['eligibility_proof'], $validated['eligibility_proof_type']);
 
         return $validated;
     }
